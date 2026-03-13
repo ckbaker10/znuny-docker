@@ -26,8 +26,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
 
   mariadb:
-    build: ./mariadb
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ckbaker10}/znuny-mariadb:${ZNUNY_VERSION:-7.2.1}
+    image: mariadb:10.11
     restart: unless-stopped
     expose:
       - "3306"
@@ -37,11 +36,17 @@ services:
       MYSQL_DATABASE: ${ZNUNY_DB_NAME:-znuny}
       MYSQL_USER: ${ZNUNY_DB_USER:-znuny}
       MYSQL_PASSWORD: ${ZNUNY_DB_PASSWORD:-changeme}
+    command:
+      - --max-allowed-packet=256M
+      - --innodb-log-file-size=256M
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
       timeout: 5s
       retries: 12
+      start_period: 30s
     volumes:
       - ./volumes/mysql:/var/lib/mysql
       - /etc/localtime:/etc/localtime:ro

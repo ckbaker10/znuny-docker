@@ -8,7 +8,6 @@ Images are published to the GitHub Container Registry on every version tag push.
 
 ```
 ghcr.io/ckbaker10/znuny:<version>
-ghcr.io/ckbaker10/znuny-mariadb:<version>
 ```
 
 ---
@@ -46,9 +45,6 @@ znuny-docker/
 │   ├── util_functions.sh              # Logging utilities
 │   ├── znuny_backup.sh                # Automated backup script (called by cron)
 │   └── etc/supervisord/znuny.conf     # Supervisord program definitions
-├── mariadb/
-│   ├── Dockerfile                     # MariaDB 10.11 image
-│   └── etc/znuny.cnf                  # MariaDB tuning for Znuny
 ├── docker-compose.yml                 # Main stack
 ├── .env.example                       # All supported variables with descriptions
 └── Planning.md                        # Architecture decisions and implementation plan
@@ -209,8 +205,6 @@ This builds multi-arch images (`linux/amd64` + `linux/arm64`) and pushes:
 
 - `ghcr.io/<owner>/znuny:7.2.1`
 - `ghcr.io/<owner>/znuny:latest`
-- `ghcr.io/<owner>/znuny-mariadb:7.2.1`
-- `ghcr.io/<owner>/znuny-mariadb:latest`
 
 The workflow requires **no additional secrets** — it uses the built-in `GITHUB_TOKEN`.
 

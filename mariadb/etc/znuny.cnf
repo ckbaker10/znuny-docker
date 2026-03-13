@@ -1,0 +1,14 @@
+# MariaDB configuration tuned for Znuny 7.2
+# Ref: https://doc.znuny.org/znuny_lts/releases/installupdate/install.html
+
+[mysql]
+max_allowed_packet = 256M
+
+[mysqldump]
+max_allowed_packet = 256M
+
+[mysqld]
+innodb_log_file_size   = 256M
+max_allowed_packet     = 256M
+character-set-server   = utf8mb4
+collation-server       = utf8mb4_unicode_ci

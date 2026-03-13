@@ -1,0 +1,133 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY: ghcr.io
+  ZNUNY_IMAGE: ${{ github.repository_owner }}/znuny
+  MARIADB_IMAGE: ${{ github.repository_owner }}/znuny-mariadb
+
+jobs:
+  build-and-push:
+    name: Build & Push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # ----------------------------------------------------------------
+      # 1. Checkout
+      # ----------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------------------
+      # 2. Derive the Znuny version from the git tag (v7.2.1 → 7.2.1)
+      # ----------------------------------------------------------------
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. v7.2.1
+          VERSION="${TAG#v}"                # strip leading 'v'
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}"         >> "$GITHUB_OUTPUT"
+
+      # ----------------------------------------------------------------
+      # 3. Set up QEMU for multi-arch builds
+      # ----------------------------------------------------------------
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # ----------------------------------------------------------------
+      # 4. Set up Docker Buildx
+      # ----------------------------------------------------------------
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ----------------------------------------------------------------
+      # 5. Log in to GitHub Container Registry
+      # ----------------------------------------------------------------
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ----------------------------------------------------------------
+      # 6. Generate Docker metadata (tags & labels) — Znuny image
+      # ----------------------------------------------------------------
+      - name: Docker metadata — Znuny
+        id: meta-znuny
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.ZNUNY_IMAGE }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=Znuny
+            org.opencontainers.image.description=Znuny ${{ steps.version.outputs.version }} on Debian 12
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+
+      # ----------------------------------------------------------------
+      # 7. Build & push — Znuny image
+      # ----------------------------------------------------------------
+      - name: Build and push Znuny image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./znuny
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-znuny.outputs.tags }}
+          labels: ${{ steps.meta-znuny.outputs.labels }}
+          build-args: |
+            ZNUNY_VERSION=${{ steps.version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ----------------------------------------------------------------
+      # 8. Generate Docker metadata — MariaDB image
+      # ----------------------------------------------------------------
+      - name: Docker metadata — MariaDB
+        id: meta-mariadb
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.MARIADB_IMAGE }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=Znuny MariaDB
+            org.opencontainers.image.description=MariaDB 10.11 configured for Znuny ${{ steps.version.outputs.version }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+
+      # ----------------------------------------------------------------
+      # 9. Build & push — MariaDB image
+      # ----------------------------------------------------------------
+      - name: Build and push MariaDB image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./mariadb
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-mariadb.outputs.tags }}
+          labels: ${{ steps.meta-mariadb.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ----------------------------------------------------------------
+      # 10. Output the image digests for verification
+      # ----------------------------------------------------------------
+      - name: Image digest summary
+        run: |
+          echo "### Published images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Tags |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| \`${{ env.REGISTRY }}/${{ env.ZNUNY_IMAGE }}\` | \`${{ steps.version.outputs.version }}\`, \`latest\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`${{ env.REGISTRY }}/${{ env.MARIADB_IMAGE }}\` | \`${{ steps.version.outputs.version }}\`, \`latest\` |" >> $GITHUB_STEP_SUMMARY

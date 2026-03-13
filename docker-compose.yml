@@ -1,0 +1,47 @@
+services:
+
+  znuny:
+    build:
+      context: ./znuny
+      args:
+        ZNUNY_VERSION: ${ZNUNY_VERSION:-7.2.1}
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-owner}/znuny:${ZNUNY_VERSION:-7.2.1}
+    restart: unless-stopped
+    ports:
+      - "${ZNUNY_HTTP_PORT:-80}:80"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    env_file: .env
+    volumes:
+      # Znuny configuration (Config.pm and friends)
+      - ./volumes/config:/opt/znuny/Kernel
+      # Article attachments (only relevant when using ArticleStorageFS)
+      - ./volumes/article:/opt/znuny/var/article
+      # Automated backup output
+      - ./volumes/backups:/var/znuny/backups
+      # Drop .opm addon files here to auto-install at startup
+      - ./volumes/addons:/opt/znuny/addons
+      # Keep container time in sync with host
+      - /etc/localtime:/etc/localtime:ro
+
+  mariadb:
+    build: ./mariadb
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-owner}/znuny-mariadb:${ZNUNY_VERSION:-7.2.1}
+    restart: unless-stopped
+    expose:
+      - "3306"
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
+      MYSQL_DATABASE: ${ZNUNY_DB_NAME:-znuny}
+      MYSQL_USER: ${ZNUNY_DB_USER:-znuny}
+      MYSQL_PASSWORD: ${ZNUNY_DB_PASSWORD:-changeme}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - ./volumes/mysql:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro

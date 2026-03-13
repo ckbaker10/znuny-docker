@@ -1,0 +1,20 @@
+# Development overrides — automatically applied by `docker compose up`.
+# Do NOT commit secrets or local paths to version control.
+
+services:
+
+  znuny:
+    build:
+      context: ./znuny
+      args:
+        ZNUNY_VERSION: ${ZNUNY_VERSION:-7.2.1}
+    environment:
+      ZNUNY_DEBUG: "yes"
+    # Expose extra ports for local development (e.g. direct Apache access)
+    ports:
+      - "8080:80"
+
+  mariadb:
+    # Expose MariaDB port locally for direct DB access with a GUI client
+    ports:
+      - "3306:3306"

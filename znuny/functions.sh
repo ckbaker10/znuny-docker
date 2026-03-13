@@ -313,13 +313,13 @@ function upgrade_modules() {
 # Minor version upgrade
 # ---------------------------------------------------------------------------
 function upgrade_minor_version() {
-  print_info "Running DB update script..."
+  print_info "Running patch level migration..."
   su -c "${ZNUNY_ROOT}bin/znuny.Console.pl Maint::Config::Rebuild --cleanup" -s /bin/bash znuny
-  su -c "${ZNUNY_ROOT}scripts/DBUpdate-to-7.pl --non-interactive" -s /bin/bash znuny
+  su -c "${ZNUNY_ROOT}scripts/MigrateToZnuny7_2.pl --verbose" -s /bin/bash znuny
   if [ $? -gt 0 ]; then
-    print_error "DB update failed!" && exit 1
+    print_error "Patch level migration failed!" && exit 1
   fi
-  print_info "DB update complete."
+  print_info "Patch level migration complete."
 }
 
 # ---------------------------------------------------------------------------

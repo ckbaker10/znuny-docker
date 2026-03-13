@@ -4,7 +4,7 @@
 
 FROM debian:12-slim
 
-ARG ZNUNY_VERSION=7.2.1
+ARG ZNUNY_VERSION
 LABEL maintainer="znuny-docker" \
       org.opencontainers.image.title="Znuny" \
       org.opencontainers.image.description="Znuny ${ZNUNY_VERSION} on Debian 12" \

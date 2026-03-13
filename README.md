@@ -5,8 +5,8 @@ Dockerised [Znuny 7.2](https://www.znuny.org) based on **Debian 12 (Bookworm)**.
 Images are published to the GitHub Container Registry on every version tag push.
 
 ```
-ghcr.io/<owner>/znuny:<version>
-ghcr.io/<owner>/znuny-mariadb:<version>
+ghcr.io/ckbkr10/znuny:<version>
+ghcr.io/ckbkr10/znuny-mariadb:<version>
 ```
 
 ---
@@ -259,6 +259,103 @@ Required Apache modules: `mod_rewrite`, `mod_ssl`, `mod_proxy`, `mod_proxy_http`
 ```bash
 a2enmod rewrite ssl proxy proxy_http headers
 ```
+
+---
+
+## Patch Level Updates (7.2.x → 7.2.y)
+
+Updating to a new patch release only requires bumping the version and restarting.
+All data is preserved in volumes — the image is replaced, not the data.
+
+```bash
+# 1. Update the version in .env
+ZNUNY_VERSION=7.2.3
+
+# 2. Pull the new pre-built image
+docker compose pull
+
+# 3. Restart the stack
+docker compose up -d
+```
+
+On startup the container automatically:
+- Rebuilds the Znuny configuration (`Maint::Config::Rebuild`)
+- Clears the application cache (`Maint::Cache::Delete`)
+- Reinstalls any addons found in `./volumes/addons`
+
+For patch level releases these steps are sufficient. If a release explicitly requires
+a schema migration or package reinstall, run these commands after the container is up:
+
+```bash
+docker exec -it znuny-docker-znuny-1 \
+  su -c "scripts/MigrateToZnuny7_2.pl --verbose" -s /bin/bash znuny
+
+docker exec -it znuny-docker-znuny-1 \
+  su -c "bin/znuny.Console.pl Admin::Package::ReinstallAll" -s /bin/bash znuny
+```
+
+---
+
+## Migrating an Existing Znuny 7.1 System to Docker
+
+Use this process to move a bare-metal or VM-based Znuny 7.1 installation into this
+Docker setup. The migration upgrades Znuny to 7.2 at the same time.
+
+### 1. Back up the existing system
+
+On the source system, create a full backup using the bundled script:
+
+```bash
+su -c "scripts/backup.pl -d /path/to/backup --backup-type fullbackup" - znuny
+```
+
+Copy the resulting archive to `./volumes/backups/` on the Docker host.
+
+### 2. Restore into the container
+
+Set the restore variables in `.env`:
+
+```env
+ZNUNY_INSTALL=restore
+ZNUNY_BACKUP_DATE=2024-01-15_04-00   # filename without extension
+ZNUNY_DROP_DATABASE=yes
+```
+
+Start the stack — the entrypoint will restore the database and files automatically:
+
+```bash
+docker compose up -d
+```
+
+### 3. Run the 7.2 migration
+
+Once the container is running, execute the migration script:
+
+```bash
+docker exec -it znuny-docker-znuny-1 \
+  su -c "scripts/MigrateToZnuny7_2.pl --verbose" -s /bin/bash znuny
+```
+
+### 4. Reinstall addons
+
+```bash
+docker exec -it znuny-docker-znuny-1 \
+  su -c "bin/znuny.Console.pl Admin::Package::ReinstallAll" -s /bin/bash znuny
+```
+
+### 5. Switch to normal mode and restart
+
+Edit `.env`:
+
+```env
+ZNUNY_INSTALL=no
+```
+
+```bash
+docker compose up -d
+```
+
+The system is now running Znuny 7.2 in Docker with all data from the original installation.
 
 ---
 

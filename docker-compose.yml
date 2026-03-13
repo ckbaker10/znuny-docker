@@ -5,7 +5,7 @@ services:
       context: ./znuny
       args:
         ZNUNY_VERSION: ${ZNUNY_VERSION:-7.2.1}
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-owner}/znuny:${ZNUNY_VERSION:-7.2.1}
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ckbkr10}/znuny:${ZNUNY_VERSION:-7.2.1}
     restart: unless-stopped
     ports:
       - "127.0.0.1:${ZNUNY_HTTP_PORT:-8080}:80"
@@ -27,7 +27,7 @@ services:
 
   mariadb:
     build: ./mariadb
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-owner}/znuny-mariadb:${ZNUNY_VERSION:-7.2.1}
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ckbkr10}/znuny-mariadb:${ZNUNY_VERSION:-7.2.1}
     restart: unless-stopped
     expose:
       - "3306"

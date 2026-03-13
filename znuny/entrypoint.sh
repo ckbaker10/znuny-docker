@@ -28,6 +28,7 @@ wait_for_db
 if [ "${ZNUNY_INSTALL}" == "yes" ]; then
   print_info "Installer mode — open http://<hostname>/znuny/installer.pl to proceed."
   check_host_mount_dir
+  check_custom_skins_dir
   ${ZNUNY_ROOT}bin/znuny.SetPermissions.pl --znuny-user=znuny --web-group=www-data "${ZNUNY_ROOT}"
 
 # ---------------------------------------------------------------------------

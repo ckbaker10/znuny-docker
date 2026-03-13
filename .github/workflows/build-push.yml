@@ -59,16 +59,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ----------------------------------------------------------------
-      # 6. Generate Docker metadata (tags & labels) — Znuny image
+      # 6. Generate OCI labels — Znuny image
       # ----------------------------------------------------------------
       - name: Docker metadata — Znuny
         id: meta-znuny
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.ZNUNY_IMAGE }}
-          tags: |
-            type=raw,value=${{ steps.version.outputs.version }}
-            type=raw,value=latest
+          # Tags are intentionally NOT set here — we build them explicitly
+          # in the build step to guarantee both version and latest are applied.
+          flavor: |
+            latest=false
           labels: |
             org.opencontainers.image.title=Znuny
             org.opencontainers.image.description=Znuny ${{ steps.version.outputs.version }} on Debian 12
@@ -83,7 +84,9 @@ jobs:
           context: ./znuny
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta-znuny.outputs.tags }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.ZNUNY_IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.ZNUNY_IMAGE }}:latest
           labels: ${{ steps.meta-znuny.outputs.labels }}
           build-args: |
             ZNUNY_VERSION=${{ steps.version.outputs.version }}
@@ -91,16 +94,15 @@ jobs:
           cache-to: type=gha,mode=max
 
       # ----------------------------------------------------------------
-      # 8. Generate Docker metadata — MariaDB image
+      # 8. Generate OCI labels — MariaDB image
       # ----------------------------------------------------------------
       - name: Docker metadata — MariaDB
         id: meta-mariadb
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.MARIADB_IMAGE }}
-          tags: |
-            type=raw,value=${{ steps.version.outputs.version }}
-            type=raw,value=latest
+          flavor: |
+            latest=false
           labels: |
             org.opencontainers.image.title=Znuny MariaDB
             org.opencontainers.image.description=MariaDB 10.11 configured for Znuny ${{ steps.version.outputs.version }}
@@ -115,7 +117,9 @@ jobs:
           context: ./mariadb
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta-mariadb.outputs.tags }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.MARIADB_IMAGE }}:${{ steps.version.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.MARIADB_IMAGE }}:latest
           labels: ${{ steps.meta-mariadb.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

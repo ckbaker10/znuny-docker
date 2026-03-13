@@ -65,6 +65,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libical-parser-perl \
     libspreadsheet-xlsx-perl \
     libdata-uuid-perl \
+    # Perl modules — optional
+    libcrypt-jwt-perl \
+    libcrypt-openssl-x509-perl \
+    libdbd-odbc-perl \
+    libdbd-pg-perl \
     # Process management & utilities
     supervisor \
     cron \

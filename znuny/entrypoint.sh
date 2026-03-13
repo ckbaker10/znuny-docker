@@ -42,7 +42,7 @@ elif [ "${ZNUNY_INSTALL}" == "restore" ]; then
   set_ticket_counter
   rm -f "${ZNUNY_ROOT}var/tmp/firsttime"
 
-  su -c "${ZNUNY_ROOT}bin/Cron.sh start znuny" -s /bin/bash znuny
+  su -c "${ZNUNY_ROOT}bin/Cron.sh start" -s /bin/bash znuny
   su -c "${ZNUNY_ROOT}bin/znuny.Daemon.pl start" -s /bin/bash znuny
   su -c "${ZNUNY_ROOT}bin/znuny.Console.pl Maint::Config::Rebuild" -s /bin/bash znuny
   su -c "${ZNUNY_ROOT}bin/znuny.Console.pl Maint::Cache::Delete" -s /bin/bash znuny
@@ -74,7 +74,7 @@ else
   set_ticket_counter
   rm -f "${ZNUNY_ROOT}var/tmp/firsttime"
 
-  su -c "${ZNUNY_ROOT}bin/Cron.sh start znuny" -s /bin/bash znuny
+  su -c "${ZNUNY_ROOT}bin/Cron.sh start" -s /bin/bash znuny
   su -c "${ZNUNY_ROOT}bin/znuny.Daemon.pl start" -s /bin/bash znuny
   su -c "${ZNUNY_ROOT}bin/znuny.Console.pl Maint::Config::Rebuild" -s /bin/bash znuny
   su -c "${ZNUNY_ROOT}bin/znuny.Console.pl Maint::Cache::Delete" -s /bin/bash znuny
@@ -96,11 +96,14 @@ print_info "Starting supervisord..."
 # Brief pause to let supervisord (and apache) start
 sleep 2
 
-# Restart the Znuny daemon under the now-running supervisord environment
-print_info "Restarting Znuny daemon..."
-su -c "${ZNUNY_ROOT}bin/znuny.Daemon.pl stop" -s /bin/bash znuny
-sleep 1
-su -c "${ZNUNY_ROOT}bin/znuny.Daemon.pl start" -s /bin/bash znuny
+# In installer mode the daemon must NOT start — Config.pm has no DB config yet.
+# It will be started on the next container restart after the web installer runs.
+if [ "${ZNUNY_INSTALL}" != "yes" ]; then
+  print_info "Restarting Znuny daemon..."
+  su -c "${ZNUNY_ROOT}bin/znuny.Daemon.pl stop" -s /bin/bash znuny
+  sleep 1
+  su -c "${ZNUNY_ROOT}bin/znuny.Daemon.pl start" -s /bin/bash znuny
+fi
 
 print_info "Znuny ${ZNUNY_VERSION} is ready."
 

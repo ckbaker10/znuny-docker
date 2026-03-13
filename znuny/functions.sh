@@ -29,6 +29,13 @@ ZNUNY_CONFIG_FILE="${ZNUNY_CONFIG_DIR}Config.pm"
 ZNUNY_CONFIG_MOUNT_DIR="/Kernel"
 ZNUNY_SKINS_MOUNT_DIR="/skins"
 
+# ---------------------------------------------------------------------------
+# Must be defined before the env-defaults block that calls it
+# ---------------------------------------------------------------------------
+function random_string() {
+  cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1
+}
+
 # Apply env defaults
 [ -z "${ZNUNY_INSTALL}" ]              && ZNUNY_INSTALL="no"
 [ -z "${ZNUNY_DB_NAME}" ]              && print_info "ZNUNY_DB_NAME not set, defaulting to ${DEFAULT_ZNUNY_DB_NAME}"   && ZNUNY_DB_NAME=${DEFAULT_ZNUNY_DB_NAME}
@@ -403,7 +410,8 @@ function not_allowed_pkgs_install() {
 # ---------------------------------------------------------------------------
 function term_handler() {
   print_info "SIGTERM received — shutting down Znuny..."
-  su -c "${ZNUNY_ROOT}bin/Cron.sh stop znuny" -s /bin/bash znuny
+  # Cron.sh expects to be called as the znuny user with no extra user argument
+  su -c "${ZNUNY_ROOT}bin/Cron.sh stop" -s /bin/bash znuny
   su -c "${ZNUNY_ROOT}bin/znuny.Daemon.pl stop" -s /bin/bash znuny
   supervisorctl stop all
   exit 143

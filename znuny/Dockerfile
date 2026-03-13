@@ -74,7 +74,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     locales \
     # Required to allow znuny user to run cron jobs
     libpam-runtime \
-    && locale-gen en_US.UTF-8 \
+    && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+    && locale-gen \
+    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 LANGUAGE=en_US.UTF-8 \
+    && echo 'LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8' > /etc/environment \
     && rm -rf /var/lib/apt/lists/*
 
 # ---------------------------------------------------------------------------

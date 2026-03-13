@@ -397,12 +397,10 @@ function enable_email_fetch() {
 # Unverified package install toggle
 # ---------------------------------------------------------------------------
 function not_allowed_pkgs_install() {
-  local allow=0
-  [ "${ZNUNY_ALLOW_NOT_VERIFIED_PACKAGES}" == "yes" ] && allow=1
-  print_info "Setting Package::AllowNotVerifiedPackages to ${allow}..."
-  su -c "${ZNUNY_ROOT}bin/znuny.Console.pl Admin::Config::Update \
-    --setting-name Package::AllowNotVerifiedPackages \
-    --value=${allow}" -s /bin/bash znuny || print_warning "Could not set Package::AllowNotVerifiedPackages"
+  if [ "${ZNUNY_ALLOW_NOT_VERIFIED_PACKAGES}" == "yes" ]; then
+    print_info "Allowing installation of not-verified packages..."
+    add_config_value "Package::AllowNotVerifiedPackages" "1"
+  fi
 }
 
 # ---------------------------------------------------------------------------

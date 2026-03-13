@@ -1,1 +1,23 @@
 ignorefolder
+
+# Environment — never commit secrets
+.env
+
+# Runtime volumes
+volumes/
+
+# Logs
+*.log
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Backup files
+*.bak

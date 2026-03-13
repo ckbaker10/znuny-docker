@@ -99,6 +99,7 @@ See [`.env.example`](.env.example) for the full reference with descriptions and 
 | Variable | Description |
 |---|---|
 | `ZNUNY_ROOT_PASSWORD` | Znuny admin (`root@localhost`) password |
+| `ZNUNY_HOSTNAME` | Fully-qualified hostname shown in Znuny (e.g. `znuny.example.com`) |
 | `ZNUNY_DB_PASSWORD` | Znuny application database password |
 | `MYSQL_ROOT_PASSWORD` | MariaDB root password |
 | `GITHUB_REPOSITORY_OWNER` | Your GitHub username/org (used in image tags) |

@@ -62,11 +62,20 @@ else
   print_info "Starting Znuny ${ZNUNY_VERSION}..."
 
   if [ -e "${ZNUNY_ROOT}var/tmp/firsttime" ]; then
+    # Detect genuine first boot before load_defaults writes the version file
+    local _version_file="${ZNUNY_CONFIG_DIR}/current_version"
+    local _first_boot=false
+    [ ! -f "${_version_file}" ] && _first_boot=true
+
     load_defaults
 
-    print_info "Setting admin password for root@localhost..."
-    su -c "${ZNUNY_ROOT}bin/znuny.Console.pl Admin::User::SetPassword root@localhost ${ZNUNY_ROOT_PASSWORD}" \
-       -s /bin/bash znuny
+    # Only set the admin password on genuine first boot, not on patch updates,
+    # and only when ZNUNY_ROOT_PASSWORD is explicitly provided.
+    if [ "${_first_boot}" == "true" ] && [ -n "${ZNUNY_ROOT_PASSWORD}" ]; then
+      print_info "Setting admin password for root@localhost..."
+      su -c "${ZNUNY_ROOT}bin/znuny.Console.pl Admin::User::SetPassword root@localhost ${ZNUNY_ROOT_PASSWORD}" \
+         -s /bin/bash znuny
+    fi
   fi
 
   set_permissions

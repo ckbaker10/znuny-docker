@@ -101,9 +101,9 @@ function add_config_value() {
   local display_value="${value}"
   [ "${mask}" == "true" ] && display_value="**********"
 
-  if grep -qE "\{\'?${key}\'?\}" "${ZNUNY_CONFIG_FILE}"; then
+  if grep -qE "\{'?${key}'?\}" "${ZNUNY_CONFIG_FILE}"; then
     print_info "Updating Config.pm: ${key} = ${display_value}"
-    sed -i -r "s|(\\\$Self->\{*${key}*\} *= *).+|\1\"${value}\";|" "${ZNUNY_CONFIG_FILE}"
+    sed -i -r "s|(\\\$Self->\{'?${key}'?\} *= *).+|\1'${value}';|" "${ZNUNY_CONFIG_FILE}"
   else
     print_info "Adding Config.pm: ${key} = ${display_value}"
     sed -i "/\\\$Self->{Home} = '\/opt\/znuny';/a \\    \\\$Self->{'${key}'} = '${value}';" "${ZNUNY_CONFIG_FILE}"
@@ -176,20 +176,21 @@ function load_defaults() {
     new_version=$(echo "${ZNUNY_VERSION}" | cut -d'-' -f1)
     print_info "Installed version: ${current_version} | Container version: ${new_version}"
     if [ "${current_version}" != "${new_version}" ]; then
-      print_info "Minor version change detected — running DB update..."
+      print_info "Version change detected — running migration..."
       upgrade_minor_version
       upgrade_modules
       echo "${new_version}" > "${version_file}"
     fi
   else
+    # Genuine first boot — initialise config and database
     local ver
     ver=$(grep 'VERSION' "${ZNUNY_ROOT}RELEASE" | cut -d'=' -f2 | tr -d ' ')
     echo "${ver}" > "${version_file}"
-  fi
 
-  check_host_mount_dir
-  check_custom_skins_dir
-  setup_znuny_config
+    check_host_mount_dir
+    check_custom_skins_dir
+    setup_znuny_config
+  fi
 
   $mysqlcmd -e "USE \`${ZNUNY_DB_NAME}\`" 2>/dev/null
   if [ $? -gt 0 ]; then

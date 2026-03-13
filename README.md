@@ -1,5 +1,7 @@
 # znuny-docker
 
+> This project was built with AI assistance — see [AI_DISCLAIMER.md](AI_DISCLAIMER.md) for details.
+
 Dockerised [Znuny 7.2](https://www.znuny.org) based on **Debian 12 (Bookworm)**.
 
 Images are published to the GitHub Container Registry on every version tag push.

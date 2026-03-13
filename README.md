@@ -5,8 +5,8 @@ Dockerised [Znuny 7.2](https://www.znuny.org) based on **Debian 12 (Bookworm)**.
 Images are published to the GitHub Container Registry on every version tag push.
 
 ```
-ghcr.io/ckbkr10/znuny:<version>
-ghcr.io/ckbkr10/znuny-mariadb:<version>
+ghcr.io/ckbaker10/znuny:<version>
+ghcr.io/ckbaker10/znuny-mariadb:<version>
 ```
 
 ---

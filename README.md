@@ -47,8 +47,7 @@ znuny-docker/
 ├── mariadb/
 │   ├── Dockerfile                     # MariaDB 10.11 image
 │   └── etc/znuny.cnf                  # MariaDB tuning for Znuny
-├── docker-compose.yml                 # Production stack
-├── docker-compose.override.yml        # Dev overrides (debug mode, exposed DB port)
+├── docker-compose.yml                 # Main stack
 ├── .env.example                       # All supported variables with descriptions
 └── Planning.md                        # Architecture decisions and implementation plan
 ```
@@ -62,8 +61,34 @@ Set the `ZNUNY_INSTALL` environment variable to choose the startup mode.
 | `ZNUNY_INSTALL` | Behaviour |
 |---|---|
 | `no` (default) | Auto-configure, initialise the database, start all services |
-| `yes` | Skip auto-setup; run the web installer at `/znuny/installer.pl` |
+| `yes` | Launch the web installer — daemon does **not** start until mode is switched to `no` |
 | `restore` | Restore the backup specified by `ZNUNY_BACKUP_DATE` |
+
+### Web Installer Mode (`ZNUNY_INSTALL=yes`)
+
+Use this mode when you want full control over the initial configuration via the browser UI.
+
+```bash
+# 1. Set installer mode in .env
+ZNUNY_INSTALL=yes
+
+# 2. Start the stack
+docker compose up -d
+
+# 3. Open the installer in your browser and complete all steps
+#    https://<hostname>/znuny/installer.pl
+
+# 4. After the installer finishes, switch to normal mode
+#    Edit .env:
+ZNUNY_INSTALL=no
+
+# 5. Restart the container — daemon and cron will now start
+docker compose up -d
+```
+
+> **Note:** The Znuny daemon does not start while `ZNUNY_INSTALL=yes` because
+> `Config.pm` has no database configuration until the installer writes it.
+> Always restart with `ZNUNY_INSTALL=no` after completing the web installer.
 
 ---
 
@@ -122,6 +147,21 @@ docker compose up
 
 ---
 
+## Resetting the Admin Password
+
+If the `root@localhost` password is unknown (e.g. after running the web installer),
+reset it directly inside the running container:
+
+```bash
+docker exec -it znuny-docker-znuny-1 \
+  su -c "/opt/znuny/bin/znuny.Console.pl Admin::User::SetPassword root@localhost 'YourNewPassword'" \
+  -s /bin/bash znuny
+```
+
+The change takes effect immediately — no restart required.
+
+---
+
 ## Installing Addons
 
 Place `.opm` addon files in `./volumes/addons/`. They are automatically installed
@@ -177,15 +217,56 @@ Make sure the repository has **"Read and write permissions"** enabled for Action
 
 ---
 
-## Development
+## Reverse Proxy (Apache)
 
-The `docker-compose.override.yml` is applied automatically and:
+Example host-side Apache virtual host with SSL termination and security headers.
+Adjust `ServerName` and certificate paths to match your environment.
 
-- Enables `ZNUNY_DEBUG=yes`
-- Maps Znuny on port **8080** (instead of 80)
-- Exposes MariaDB on **port 3306** for local database clients
+```apacheconf
+<VirtualHost *:80>
+    ServerName znuny.example.com
+    RewriteEngine On
+    RewriteCond %{HTTPS} off
+    RewriteRule ^/?(.*) https://%{SERVER_NAME}/$1 [R=301,L]
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName znuny.example.com
+
+    SSLEngine on
+    SSLCertificateFile    /etc/ssl/certs/your-cert.pem
+    SSLCertificateKeyFile /etc/ssl/private/your-key.key
+
+    # Security headers
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+    # Proxy to Znuny container (adjust port to match ZNUNY_HTTP_PORT)
+    ProxyPreserveHost On
+    ProxyPass        / http://127.0.0.1:80/
+    ProxyPassReverse / http://127.0.0.1:80/
+    ProxyTimeout 300
+
+    ErrorLog  ${APACHE_LOG_DIR}/znuny_error.log
+    CustomLog ${APACHE_LOG_DIR}/znuny_access.log combined
+</VirtualHost>
+```
+
+Required Apache modules: `mod_rewrite`, `mod_ssl`, `mod_proxy`, `mod_proxy_http`, `mod_headers`.
 
 ```bash
-docker compose up        # uses override automatically
-docker compose logs -f   # follow all logs
+a2enmod rewrite ssl proxy proxy_http headers
+```
+
+---
+
+## Development
+
+Enable debug mode by setting `ZNUNY_DEBUG=yes` in `.env`, then:
+
+```bash
+docker compose up
+docker compose logs -f
 ```

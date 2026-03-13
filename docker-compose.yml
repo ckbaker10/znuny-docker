@@ -8,7 +8,7 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-owner}/znuny:${ZNUNY_VERSION:-7.2.1}
     restart: unless-stopped
     ports:
-      - "127.0.01:${ZNUNY_HTTP_PORT:-80}:80"
+      - "127.0.0.1:${ZNUNY_HTTP_PORT:-8080}:80"
     depends_on:
       mariadb:
         condition: service_healthy

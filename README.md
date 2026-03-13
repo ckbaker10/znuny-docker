@@ -25,7 +25,7 @@ mkdir -p volumes/{config,article,backups,addons,mysql}
 docker compose up -d
 
 # 4. Open Znuny in your browser
-open http://localhost/znuny
+open http://localhost:8080/znuny
 ```
 
 Default admin credentials: **root@localhost** / value of `ZNUNY_ROOT_PASSWORD` (default: `changeme`).
@@ -245,8 +245,8 @@ Adjust `ServerName` and certificate paths to match your environment.
 
     # Proxy to Znuny container (adjust port to match ZNUNY_HTTP_PORT)
     ProxyPreserveHost On
-    ProxyPass        / http://127.0.0.1:80/
-    ProxyPassReverse / http://127.0.0.1:80/
+    ProxyPass        / http://127.0.0.1:8080/
+    ProxyPassReverse / http://127.0.0.1:8080/
     ProxyTimeout 300
 
     ErrorLog  ${APACHE_LOG_DIR}/znuny_error.log

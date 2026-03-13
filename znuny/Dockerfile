@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Znuny 7.2 Docker image
 # Base: Debian 12 (Bookworm) slim
 # Install method: source tarball from download.znuny.org
@@ -29,7 +30,9 @@ ENV ZNUNY_VERSION=${ZNUNY_VERSION} \
 # System packages
 # All required Perl modules from the Znuny 7.2 install documentation (Debian)
 # ---------------------------------------------------------------------------
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
     # Web server
     apache2 \
     libapache2-mod-perl2 \
@@ -82,8 +85,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 LANGUAGE=en_US.UTF-8 \
-    && echo 'LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8' > /etc/environment \
-    && rm -rf /var/lib/apt/lists/*
+    && echo 'LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8' > /etc/environment
 
 # ---------------------------------------------------------------------------
 # Download & install Znuny
@@ -114,7 +116,7 @@ RUN useradd \
 RUN ln -s /opt/znuny/scripts/apache2-httpd.include.conf \
           /etc/apache2/conf-available/znuny.conf && \
     a2dismod mpm_event  2>/dev/null || true && \
-    a2enmod  mpm_prefork headers filter perl && \
+    a2enmod  mpm_prefork headers deflate filter perl && \
     a2enconf znuny && \
     # Redirect Apache logs to container stdout/stderr
     ln -sf /dev/stdout /var/log/apache2/access.log && \

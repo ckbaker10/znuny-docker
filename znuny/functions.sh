@@ -152,6 +152,14 @@ function check_host_mount_dir() {
   fi
 }
 
+function sync_kernel_new_files() {
+  # Copy files added in a new Znuny version into the persistent Kernel volume
+  # without overwriting any existing files (preserves Config.pm and customisations).
+  print_info "Syncing new Kernel files from image to ${ZNUNY_CONFIG_DIR}..."
+  cp -rn "${ZNUNY_CONFIG_MOUNT_DIR}/." "${ZNUNY_CONFIG_DIR}/"
+  print_info "Kernel sync done."
+}
+
 function check_custom_skins_dir() {
   print_info "Copying default skins to ${SKINS_PATH}..."
   mkdir -p "${SKINS_PATH}"
@@ -175,6 +183,7 @@ function load_defaults() {
     print_info "Installed version: ${current_version} | Container version: ${new_version}"
     if [ "${current_version}" != "${new_version}" ]; then
       print_info "Version change detected — running migration..."
+      sync_kernel_new_files
       check_custom_skins_dir
       upgrade_minor_version
       upgrade_modules

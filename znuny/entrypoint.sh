@@ -63,8 +63,8 @@ else
 
   if [ -e "${ZNUNY_ROOT}var/tmp/firsttime" ]; then
     # Detect genuine first boot before load_defaults writes the version file
-    local _version_file="${ZNUNY_CONFIG_DIR}/current_version"
-    local _first_boot=false
+    _version_file="${ZNUNY_CONFIG_DIR}/current_version"
+    _first_boot=false
     [ ! -f "${_version_file}" ] && _first_boot=true
 
     load_defaults

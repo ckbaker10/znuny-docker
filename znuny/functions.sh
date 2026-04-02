@@ -316,7 +316,9 @@ function upgrade_modules() {
 function upgrade_minor_version() {
   print_info "Running patch level migration..."
   su -c "${ZNUNY_ROOT}bin/znuny.Console.pl Maint::Config::Rebuild --cleanup" -s /bin/bash znuny
-  su -c "${ZNUNY_ROOT}scripts/MigrateToZnuny7_2.pl --verbose" -s /bin/bash znuny
+  local _major_minor
+  _major_minor=$(echo "${ZNUNY_VERSION}" | cut -d'.' -f1,2 | tr '.' '_')
+  su -c "${ZNUNY_ROOT}scripts/MigrateToZnuny${_major_minor}.pl --verbose" -s /bin/bash znuny
   if [ $? -gt 0 ]; then
     print_error "Patch level migration failed!" && exit 1
   fi

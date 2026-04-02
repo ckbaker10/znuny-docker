@@ -78,6 +78,9 @@ else
     fi
   fi
 
+  # Always (re-)install the backup cron — /etc/cron.d is ephemeral inside the
+  # container and is lost on every restart, so we must recreate it each boot.
+  setup_backup_cron
   set_permissions
   not_allowed_pkgs_install
   install_modules "${ZNUNY_ADDONS_PATH}"

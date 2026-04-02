@@ -78,6 +78,11 @@ else
     fi
   fi
 
+  # Always sync new Kernel files from the image into the persistent volume.
+  # Uses cp -rn so existing files (Config.pm, customisations) are never overwritten.
+  # This ensures modules added in a new Znuny version (e.g. SAML) are available
+  # even when no version bump is detected.
+  sync_kernel_new_files
   # Always (re-)copy skins — /opt/znuny/var/httpd/htdocs/skins/ is left empty
   # in the image (skins are staged at /skins) and is not a mounted volume,
   # so it must be populated on every container start.

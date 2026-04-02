@@ -280,12 +280,31 @@ $Self->{'AuthSyncModule2'} = 'Kernel::System::Auth::Sync::SAML';
 
 ## IdP Registration (Service Provider Metadata)
 
-Register Znuny as a Service Provider (SP) in your IdP with:
+When registering Znuny as a Service Provider (SP) in your IdP, you will be asked for several values. Here is what to enter for each:
 
-- **Entity ID / Issuer:** the value of `AuthModule::SAML::Issuer`
-- **ACS URL (POST binding):** the value of `AuthModule::SAML::RequestAssertionConsumerURL`
-- **NameID format:** any format your IdP supports; the value is used as the Znuny login name
-- **Signed requests:** required if `RequestSignKey` is set; provide the corresponding public certificate to the IdP
+### Client ID / Entity ID
+This is the value of `AuthModule::SAML::Issuer`. It is the base URL of your Znuny instance including the trailing slash:
+
+```
+http://<your-server>/znuny/
+```
+
+> This value is a unique identifier for Znuny as a Service Provider. It does not need to be reachable by the IdP — it just has to match exactly what is configured in `Config.pm`.
+
+### ACS URL (Assertion Consumer Service URL)
+This is the value of `AuthModule::SAML::RequestAssertionConsumerURL`. It is the URL the IdP will **POST** the SAML response to after a successful login:
+
+```
+http://<your-server>/znuny/index.pl?Action=Login
+```
+
+> **Binding: HTTP-POST.** The IdP must be configured to POST the `SAMLResponse` to this URL. The AuthnRequest from Znuny to the IdP uses HTTP-Redirect, but the response always comes back as a POST.
+
+### NameID Format
+Use any NameID format your IdP supports. The value Znuny receives as the NameID becomes the agent's login name — make sure it matches the `UserLogin` stored in Znuny (or the value that will be synced via `UserSyncMap`).
+
+### Signed Requests
+Only required if `RequestSignKey` is configured. If signing is enabled, provide the corresponding **public certificate** to the IdP so it can verify the AuthnRequest signature.
 
 ---
 

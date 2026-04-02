@@ -101,13 +101,11 @@ function add_config_value() {
   local display_value="${value}"
   [ "${mask}" == "true" ] && display_value="**********"
 
-  if grep -qE "\{'?${key}'?\}" "${ZNUNY_CONFIG_FILE}"; then
-    print_info "Updating Config.pm: ${key} = ${display_value}"
-    sed -i -r "s|(\\\$Self->\{'?${key}'?\} *= *).+|\1'${value}';|" "${ZNUNY_CONFIG_FILE}"
-  else
-    print_info "Adding Config.pm: ${key} = ${display_value}"
-    sed -i "/\\\$Self->{Home} = '\/opt\/znuny';/a \\    \\\$Self->{'${key}'} = '${value}';" "${ZNUNY_CONFIG_FILE}"
-  fi
+  print_info "Setting Config.pm: ${key} = ${display_value}"
+  # Delete ALL existing lines for this key (handles duplicates from prior runs),
+  # then insert a single canonical entry right after the Home line.
+  sed -i -r "/\\\$Self->\{'?${key}'?\}/d" "${ZNUNY_CONFIG_FILE}"
+  sed -i "/\\\$Self->{Home} = '\/opt\/znuny';/a \\    \\\$Self->{'${key}'} = '${value}';" "${ZNUNY_CONFIG_FILE}"
 }
 
 function setup_znuny_config() {

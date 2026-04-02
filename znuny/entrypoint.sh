@@ -78,6 +78,10 @@ else
     fi
   fi
 
+  # Always (re-)copy skins — /opt/znuny/var/httpd/htdocs/skins/ is left empty
+  # in the image (skins are staged at /skins) and is not a mounted volume,
+  # so it must be populated on every container start.
+  check_custom_skins_dir
   # Always (re-)install the backup cron — /etc/cron.d is ephemeral inside the
   # container and is lost on every restart, so we must recreate it each boot.
   setup_backup_cron

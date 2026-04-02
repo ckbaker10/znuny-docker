@@ -1,0 +1,90 @@
+# syntax=docker/dockerfile:1
+# Base image for Znuny — contains all system packages and compiled Perl modules.
+# Rebuild and push this image when dependencies change:
+#   docker build -f znuny/Dockerfile.base -t ghcr.io/ckbaker10/znuny-base:1.0 znuny/
+#   docker push ghcr.io/ckbaker10/znuny-base:1.0
+
+FROM debian:12-slim
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    # Web server
+    apache2 \
+    libapache2-mod-perl2 \
+    libapache-dbi-perl \
+    # Database
+    mariadb-client \
+    libdbd-mysql-perl \
+    # Perl modules — required by Znuny
+    libtimedate-perl \
+    libnet-dns-perl \
+    libnet-ldap-perl \
+    libio-socket-ssl-perl \
+    libpdf-api2-perl \
+    libsoap-lite-perl \
+    libtext-csv-xs-perl \
+    libjson-xs-perl \
+    libxml-libxml-perl \
+    libxml-libxslt-perl \
+    libyaml-perl \
+    libyaml-libyaml-perl \
+    libarchive-zip-perl \
+    libcrypt-eksblowfish-perl \
+    libencode-hanextra-perl \
+    libmail-imapclient-perl \
+    libtemplate-perl \
+    libdatetime-perl \
+    libmoo-perl \
+    libjavascript-minifier-xs-perl \
+    libcss-minifier-xs-perl \
+    libauthen-sasl-perl \
+    libauthen-ntlm-perl \
+    libhash-merge-perl \
+    libical-parser-perl \
+    libspreadsheet-xlsx-perl \
+    libdata-uuid-perl \
+    # Perl modules — optional
+    libdbd-odbc-perl \
+    libdbd-pg-perl \
+    # Net::SAML2 dependencies available as pre-compiled apt packages
+    libmoose-perl \
+    libmoosex-types-perl \
+    libmodule-build-tiny-perl \
+    liburi-perl \
+    libwww-perl \
+    # jq binary — required by the Jq Perl module
+    jq \
+    # OpenSSL headers and build tools for XS/C extension Perl modules
+    libssl-dev \
+    make \
+    gcc \
+    pkg-config \
+    libperl-dev \
+    cpanminus \
+    # Process management & utilities
+    supervisor \
+    cron \
+    rsyslog \
+    wget \
+    tar \
+    locales \
+    # Required to allow znuny user to run cron jobs
+    libpam-runtime \
+    && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+    && locale-gen \
+    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 LANGUAGE=en_US.UTF-8 \
+    && echo 'LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8' > /etc/environment
+
+RUN cpanm --notest \
+    CryptX \
+    Crypt::JWT \
+    Crypt::OpenSSL::RSA \
+    Crypt::OpenSSL::X509 \
+    Net::SAML2 \
+    Jq

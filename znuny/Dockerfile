@@ -3,7 +3,7 @@
 # Base: Debian 12 (Bookworm) slim
 # Install method: source tarball from download.znuny.org
 
-FROM debian:12-slim
+FROM ghcr.io/ckbaker10/znuny-base:1.0
 
 ARG ZNUNY_VERSION
 LABEL maintainer="znuny-docker" \
@@ -25,92 +25,6 @@ ENV ZNUNY_VERSION=${ZNUNY_VERSION} \
     LANGUAGE=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8 \
     DEBIAN_FRONTEND=noninteractive
-
-# ---------------------------------------------------------------------------
-# System packages
-# All required Perl modules from the Znuny 7.2 install documentation (Debian)
-# ---------------------------------------------------------------------------
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
-    # Web server
-    apache2 \
-    libapache2-mod-perl2 \
-    libapache-dbi-perl \
-    # Database
-    mariadb-client \
-    libdbd-mysql-perl \
-    # Perl modules — required by Znuny
-    libtimedate-perl \
-    libnet-dns-perl \
-    libnet-ldap-perl \
-    libio-socket-ssl-perl \
-    libpdf-api2-perl \
-    libsoap-lite-perl \
-    libtext-csv-xs-perl \
-    libjson-xs-perl \
-    libxml-libxml-perl \
-    libxml-libxslt-perl \
-    libyaml-perl \
-    libyaml-libyaml-perl \
-    libarchive-zip-perl \
-    libcrypt-eksblowfish-perl \
-    libencode-hanextra-perl \
-    libmail-imapclient-perl \
-    libtemplate-perl \
-    libdatetime-perl \
-    libmoo-perl \
-    libjavascript-minifier-xs-perl \
-    libcss-minifier-xs-perl \
-    libauthen-sasl-perl \
-    libauthen-ntlm-perl \
-    libhash-merge-perl \
-    libical-parser-perl \
-    libspreadsheet-xlsx-perl \
-    libdata-uuid-perl \
-    # Perl modules — optional
-    libssl-dev \
-    libdbd-odbc-perl \
-    libdbd-pg-perl \
-    # Net::SAML2 dependencies available in apt (pre-compiled, speeds up cpanm)
-    libmoose-perl \
-    libmoosex-types-perl \
-    libmodule-build-tiny-perl \
-    liburi-perl \
-    libwww-perl \
-    # jq binary — required by the Jq Perl module
-    jq \
-    # Build tools for cpanm (XS/C extension modules)
-    make \
-    gcc \
-    pkg-config \
-    libperl-dev \
-    cpanminus \
-    # Process management & utilities
-    supervisor \
-    cron \
-    rsyslog \
-    wget \
-    tar \
-    locales \
-    # Required to allow znuny user to run cron jobs
-    libpam-runtime \
-    && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
-    && locale-gen \
-    && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 LANGUAGE=en_US.UTF-8 \
-    && echo 'LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8' > /etc/environment
-
-# ---------------------------------------------------------------------------
-# Perl modules not available in apt — installed via cpanm
-# ---------------------------------------------------------------------------
-RUN apt-get purge -y libcryptx-perl 2>/dev/null || true
-RUN cpanm --notest \
-    CryptX \
-    Crypt::JWT \
-    Crypt::OpenSSL::RSA \
-    Crypt::OpenSSL::X509 \
-    Net::SAML2 \
-    Jq
 
 # ---------------------------------------------------------------------------
 # Download & install Znuny

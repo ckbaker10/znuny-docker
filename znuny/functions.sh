@@ -177,6 +177,7 @@ function load_defaults() {
     print_info "Installed version: ${current_version} | Container version: ${new_version}"
     if [ "${current_version}" != "${new_version}" ]; then
       print_info "Version change detected — running migration..."
+      check_custom_skins_dir
       upgrade_minor_version
       upgrade_modules
       echo "${new_version}" > "${version_file}"

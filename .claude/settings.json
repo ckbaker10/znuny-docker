@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny tag)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny diff --name-only rel-7_2_3 rel-7_3_1)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny show rel-7_3_1:Kernel/System/Auth/SAML.pm)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny show rel-7_3_1:Kernel/System/Auth/SAML/Request.pm)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny show rel-7_3_1:Kernel/System/Auth/SAML/Response.pm)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny show rel-7_3_1:Kernel/System/Auth/Sync/SAML.pm)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny show rel-7_3_1:Kernel/System/CustomerAuth/SAML.pm)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny diff rel-7_2_3 rel-7_3_1 -- Kernel/Config/Files/)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny diff rel-7_2_3 rel-7_3_1 -- Kernel/Config/Defaults.pm)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny show rel-7_3_1:Kernel/Config/Defaults.pm)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny diff rel-7_2_3 rel-7_3_1 -- Kernel/Modules/Login.pm)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny diff rel-7_2_3 rel-7_3_1 -- Kernel/Output/HTML/Templates/Standard/Login.tt)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny diff rel-7_2_3 rel-7_3_1 -- Kernel/Output/HTML/Templates/Standard/CustomerLogin.tt)",
+      "Bash(git -C /opt/development-gits/znuny-docker/ignorefolder/Znuny diff rel-7_2_3 rel-7_3_1 -- .github/workflows/ci/dependencies.sh)"
+    ],
+    "additionalDirectories": [
+      "/opt/development-gits/znuny-docker/ignorefolder"
+    ]
+  }
+}

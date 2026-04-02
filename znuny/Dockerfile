@@ -69,10 +69,23 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     libspreadsheet-xlsx-perl \
     libdata-uuid-perl \
     # Perl modules — optional
-    libcrypt-jwt-perl \
-    libcrypt-openssl-x509-perl \
+    libssl-dev \
     libdbd-odbc-perl \
     libdbd-pg-perl \
+    # Net::SAML2 dependencies available in apt (pre-compiled, speeds up cpanm)
+    libmoose-perl \
+    libmoosex-types-perl \
+    libmodule-build-tiny-perl \
+    liburi-perl \
+    libwww-perl \
+    # jq binary — required by the Jq Perl module
+    jq \
+    # Build tools for cpanm (XS/C extension modules)
+    make \
+    gcc \
+    pkg-config \
+    libperl-dev \
+    cpanminus \
     # Process management & utilities
     supervisor \
     cron \
@@ -86,6 +99,18 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && locale-gen \
     && update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 LANGUAGE=en_US.UTF-8 \
     && echo 'LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8' > /etc/environment
+
+# ---------------------------------------------------------------------------
+# Perl modules not available in apt — installed via cpanm
+# ---------------------------------------------------------------------------
+RUN apt-get purge -y libcryptx-perl 2>/dev/null || true
+RUN cpanm --notest \
+    CryptX \
+    Crypt::JWT \
+    Crypt::OpenSSL::RSA \
+    Crypt::OpenSSL::X509 \
+    Net::SAML2 \
+    Jq
 
 # ---------------------------------------------------------------------------
 # Download & install Znuny

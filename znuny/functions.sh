@@ -153,10 +153,30 @@ function check_host_mount_dir() {
 }
 
 function sync_kernel_new_files() {
-  # Copy files added in a new Znuny version into the persistent Kernel volume
-  # without overwriting any existing files (preserves Config.pm and customisations).
-  print_info "Syncing new Kernel files from image to ${ZNUNY_CONFIG_DIR}..."
-  cp -rn "${ZNUNY_CONFIG_MOUNT_DIR}/." "${ZNUNY_CONFIG_DIR}/"
+  # Fully sync all standard Znuny Kernel files from the image into the persistent
+  # volume, ensuring updated modules (e.g. InterfaceAgent.pm, SAML modules) are
+  # always at the correct version.
+  #
+  # User-owned files that must survive the sync:
+  #   Config.pm       — database credentials, SAML config, etc.
+  #   current_version — our version tracking marker
+  #   sp.key          — SAML SP private key (if present)
+  #
+  print_info "Syncing Kernel files from image to ${ZNUNY_CONFIG_DIR}..."
+  local tmp_dir
+  tmp_dir=$(mktemp -d)
+
+  for f in Config.pm current_version sp.key; do
+    [ -f "${ZNUNY_CONFIG_DIR}/${f}" ] && cp "${ZNUNY_CONFIG_DIR}/${f}" "${tmp_dir}/${f}"
+  done
+
+  cp -rf "${ZNUNY_CONFIG_MOUNT_DIR}/." "${ZNUNY_CONFIG_DIR}/"
+
+  for f in Config.pm current_version sp.key; do
+    [ -f "${tmp_dir}/${f}" ] && cp "${tmp_dir}/${f}" "${ZNUNY_CONFIG_DIR}/${f}"
+  done
+
+  rm -rf "${tmp_dir}"
   print_info "Kernel sync done."
 }
 

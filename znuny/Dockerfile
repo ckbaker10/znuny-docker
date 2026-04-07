@@ -82,11 +82,6 @@ COPY etc/supervisord/znuny.conf /etc/supervisor/conf.d/znuny.conf
 RUN chmod 755 /entrypoint.sh /znuny_backup.sh /functions.sh /util_functions.sh
 
 # ---------------------------------------------------------------------------
-# Install SAML 2.0 Perl dependency (not available as a Debian package)
-# ---------------------------------------------------------------------------
-RUN cpanm --notest Net::SAML2
-
-# ---------------------------------------------------------------------------
 # Stage Kernel/ and skins/ outside the app dir so host-mounted volumes work.
 # On first container start, entrypoint copies them back in.
 # ---------------------------------------------------------------------------

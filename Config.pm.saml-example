@@ -1,0 +1,173 @@
+# --
+# Znuny 7.3.1 — Example Config.pm with SAML 2.0 SSO
+#
+# Copy this file to volumes/config/Config.pm and adjust the values marked
+# with <CHANGE_ME> before starting the container.
+#
+# Before starting:
+#   1. Generate SP keypair (required if IdP has WantAuthnRequestsSigned=true):
+#        openssl genrsa -out volumes/config/sp.key 2048
+#        openssl req -new -key volumes/config/sp.key -x509 -days 3650 \
+#          -subj "/CN=znuny-sp" -out volumes/config/sp.crt
+#      Then upload sp.crt to your IdP.
+#
+#   2. Set the SAML attribute names in UserSyncMap to match what your IdP
+#      actually sends. Decode a test SAMLResponse to verify:
+#        echo "<base64>" | base64 -d | grep -o 'Name="[^"]*"'
+#
+#   3. Ensure the 'users' group exists in Znuny before the first SAML login.
+# --
+
+package Kernel::Config;
+
+use strict;
+use warnings;
+use utf8;
+
+sub Load {
+    my $Self = shift;
+
+    # ---------------------------------------------------- #
+    # Database settings (managed by docker-compose/.env)   #
+    # ---------------------------------------------------- #
+
+    $Self->{'DatabaseHost'} = 'mariadb';
+    $Self->{'Database'}     = 'znuny';
+    $Self->{'DatabaseUser'} = 'znuny';
+    $Self->{'DatabasePw'}   = 'changeme';
+    $Self->{'DatabaseDSN'}  = "DBI:mysql:database=$Self->{Database};host=$Self->{DatabaseHost}";
+    $Self->{'DatabasePort'} = '3306';
+
+    # ---------------------------------------------------- #
+    # Core settings                                        #
+    # ---------------------------------------------------- #
+
+    $Self->{Home}           = '/opt/znuny';
+    $Self->{'SecureMode'}   = '1';
+
+    # FQDN is overwritten by the entrypoint from ZNUNY_HOSTNAME env var.
+    # You can hard-code it here if you prefer:
+    # $Self->{'FQDN'} = 'znuny.your-domain.com';
+
+    # ---------------------------------------------------- #
+    # SAML 2.0 — Agent Authentication                      #
+    # ---------------------------------------------------- #
+
+    # Enable SAML as auth module 1. Keep the default Znuny password auth
+    # available (no AuthModule0 override) so local accounts still work.
+    $Self->{'AuthModule1'} = 'Kernel::System::Auth::SAML';
+
+    # -- IdP Metadata --
+    # Option A: fetch from URL (comment out RequestMetaDataXML1 if using this)
+    # $Self->{'AuthModule::SAML::RequestMetaDataURL1'} =
+    #     'https://sso.your-domain.com/auth/realms/<realm>/protocol/saml/descriptor';
+
+    # Option B: embed XML string (comment out RequestMetaDataURL1 if using this)
+    # Download from: https://sso.your-domain.com/auth/realms/<realm>/protocol/saml/descriptor
+    $Self->{'AuthModule::SAML::RequestMetaDataXML1'} = '<?xml version="1.0" encoding="UTF-8"?>
+<md:EntityDescriptor
+    xmlns="urn:oasis:names:tc:SAML:2.0:metadata"
+    xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"
+    xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
+    xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+    entityID="https://sso.your-domain.com/auth/realms/<realm>">
+    <md:IDPSSODescriptor WantAuthnRequestsSigned="true"
+                         protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+        <md:KeyDescriptor use="signing">
+            <ds:KeyInfo>
+                <ds:X509Data>
+                    <ds:X509Certificate>
+                        <!-- PASTE IdP SIGNING CERTIFICATE HERE (base64, no PEM headers) -->
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </md:KeyDescriptor>
+        <md:SingleSignOnService
+            Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+            Location="https://sso.your-domain.com/auth/realms/<realm>/protocol/saml"/>
+    </md:IDPSSODescriptor>
+</md:EntityDescriptor>';
+
+    # -- SP Identity --
+    # Must match the Client ID / Entity ID registered in the IdP exactly,
+    # including trailing slash. Must use https:// if the site is served over HTTPS.
+    $Self->{'AuthModule::SAML::Issuer1'} = 'https://<CHANGE_ME>/znuny/';
+
+    # URL the IdP POSTs the SAMLResponse to. Must use https:// if the site is HTTPS.
+    $Self->{'AuthModule::SAML::RequestAssertionConsumerURL1'} =
+        'https://<CHANGE_ME>/znuny/index.pl?Action=Login';
+
+    # Label on the login button
+    $Self->{'AuthModule::SAML::RequestLoginButtonText1'} = 'Log in via SSO';
+
+    # -- SP Signing Key --
+    # Required when IdP metadata has WantAuthnRequestsSigned="true".
+    # Key must be in PKCS#1 format (-----BEGIN RSA PRIVATE KEY-----).
+    # Generate: openssl genrsa -out volumes/config/sp.key 2048
+    # The file is available inside the container at /opt/znuny/Kernel/sp.key
+    # because volumes/config/ is mounted as /opt/znuny/Kernel/.
+    $Self->{'AuthModule::SAML::RequestSignKey1'} = '/opt/znuny/Kernel/sp.key';
+
+    # ---------------------------------------------------- #
+    # SAML 2.0 — Agent User Sync (auto-registration)       #
+    # ---------------------------------------------------- #
+
+    # Creates/updates agent accounts from SAML assertion attributes on login.
+    # Without this, authentication succeeds but the user sees:
+    # "Authentication succeeded, but no user data record is found in the database."
+    $Self->{'AuthSyncModule1'} = 'Kernel::System::Auth::Sync::SAML';
+
+    # Map Znuny user fields to SAML attribute names.
+    # All three (UserFirstname, UserLastname, UserEmail) are required.
+    # Attribute names must exactly match the Name= attribute in the SAMLResponse.
+    #
+    # Standard Keycloak (with User Property mappers configured):
+    $Self->{'AuthSyncModule::SAML::UserSyncMap1'} = {
+        UserFirstname => 'firstName',
+        UserLastname  => 'lastName',
+        UserEmail     => 'email',
+    };
+
+    # If your IdP only sends a combined display name (no split first/last),
+    # use this workaround and fix the IdP mappers when possible:
+    # $Self->{'AuthSyncModule::SAML::UserSyncMap1'} = {
+    #     UserFirstname => 'displayName',
+    #     UserLastname  => 'displayName',
+    #     UserEmail     => 'userPrincipalName',
+    # };
+
+    # Groups assigned to newly created agents on first login.
+    # 'users' is required for agents to see any queues.
+    # The group must already exist in Znuny before the first login.
+    $Self->{'AuthSyncModule::SAML::UserSyncInitialGroups1'} = [
+        'users',
+    ];
+
+    # -- Optional: sync Znuny groups from a SAML attribute --
+    # $Self->{'AuthSyncModule::SAML::UserSyncGroupsDefinition::Attribute1'} = 'MemberOf';
+    # $Self->{'AuthSyncModule::SAML::UserSyncGroupsDefinition1'} = {
+    #     'SSO-Group-Support' => {
+    #         'support' => { rw => 1 },
+    #     },
+    #     'SSO-Group-Admin' => {
+    #         'admin'   => { rw => 1 },
+    #         'users'   => { rw => 1 },
+    #     },
+    # };
+
+    # ---------------------------------------------------- #
+    # data inserted by installer                           #
+    # ---------------------------------------------------- #
+    # $DIBI$
+
+    return 1;
+}
+
+# ---------------------------------------------------- #
+# needed system stuff (don't edit this)                #
+# ---------------------------------------------------- #
+
+use Kernel::Config::Defaults; # import Translatable()
+use parent qw(Kernel::Config::Defaults);
+
+1;

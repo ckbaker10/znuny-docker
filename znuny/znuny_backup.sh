@@ -12,6 +12,7 @@ ZNUNY_BACKUP_COMPRESSION="${ZNUNY_BACKUP_COMPRESSION:-gzip}"
 ZNUNY_BACKUP_ROTATION="${ZNUNY_BACKUP_ROTATION:-30}"
 
 mkdir -p "${ZNUNY_BACKUP_DIR}"
+chown znuny:www-data "${ZNUNY_BACKUP_DIR}"
 
 echo "[INFO] $(date '+%Y-%m-%d %H:%M:%S') - Starting Znuny backup (type=${ZNUNY_BACKUP_TYPE}, compress=${ZNUNY_BACKUP_COMPRESSION})..."
 

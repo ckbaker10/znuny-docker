@@ -210,33 +210,37 @@ function load_defaults() {
       echo "${new_version}" > "${version_file}"
     fi
   else
-    # Genuine first boot — initialise config and database
+    # Genuine first boot — initialise config and database. Copy the default
+    # config first: check_host_mount_dir only copies into an empty directory.
+    check_host_mount_dir
+
     local ver
     ver=$(grep 'VERSION' "${ZNUNY_ROOT}RELEASE" | cut -d'=' -f2 | tr -d ' ')
     echo "${ver}" > "${version_file}"
 
-    check_host_mount_dir
     check_custom_skins_dir
     setup_znuny_config
   fi
 
-  $mysqlcmd -e "USE \`${ZNUNY_DB_NAME}\`" 2>/dev/null
+  # The mariadb service already creates an empty database (MYSQL_DATABASE),
+  # so check for a Znuny table instead of the database itself.
+  $mysqlcmd -e "SELECT 1 FROM \`${ZNUNY_DB_NAME}\`.valid LIMIT 1" >/dev/null 2>&1
   if [ $? -gt 0 ]; then
     create_db
     if [ "${ZNUNY_INSTALL}" == "no" ]; then
       print_info "Loading DB schema..."
-      $mysqlcmd "${ZNUNY_DB_NAME}" < "${ZNUNY_ROOT}scripts/database/znuny-schema.mysql.sql"
-      [ $? -gt 0 ] && print_error "Failed to load znuny-schema.mysql.sql!" && exit 1
+      $mysqlcmd "${ZNUNY_DB_NAME}" < "${ZNUNY_ROOT}scripts/database/schema.mysql.sql"
+      [ $? -gt 0 ] && print_error "Failed to load schema.mysql.sql!" && exit 1
       print_info "Loading initial DB inserts..."
-      $mysqlcmd "${ZNUNY_DB_NAME}" < "${ZNUNY_ROOT}scripts/database/znuny-initial_insert.mysql.sql"
-      [ $? -gt 0 ] && print_error "Failed to load znuny-initial_insert.mysql.sql!" && exit 1
+      $mysqlcmd "${ZNUNY_DB_NAME}" < "${ZNUNY_ROOT}scripts/database/initial_insert.mysql.sql"
+      [ $? -gt 0 ] && print_error "Failed to load initial_insert.mysql.sql!" && exit 1
       print_info "Loading DB schema constraints..."
-      $mysqlcmd "${ZNUNY_DB_NAME}" < "${ZNUNY_ROOT}scripts/database/znuny-schema-post.mysql.sql"
-      [ $? -gt 0 ] && print_error "Failed to load znuny-schema-post.mysql.sql!" && exit 1
+      $mysqlcmd "${ZNUNY_DB_NAME}" < "${ZNUNY_ROOT}scripts/database/schema-post.mysql.sql"
+      [ $? -gt 0 ] && print_error "Failed to load schema-post.mysql.sql!" && exit 1
       print_info "Database schema loaded."
     fi
   else
-    print_info "Database '${ZNUNY_DB_NAME}' already exists — skipping init."
+    print_info "Znuny schema found in '${ZNUNY_DB_NAME}' — skipping init."
   fi
 }
 

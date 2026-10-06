@@ -63,6 +63,8 @@ cleanup() {
         return "$rc"
     fi
     compose down >/dev/null 2>&1 || true
+    # podman-compose down keeps the network it created
+    "$ENGINE" network rm "${PROJECT}_default" >/dev/null 2>&1 || true
     # Volume files belong to container UIDs; remove them from inside a container.
     "$ENGINE" run --rm -v "$WORK:/work" docker.io/library/debian:13-slim \
         rm -rf /work/volumes >/dev/null 2>&1 || true

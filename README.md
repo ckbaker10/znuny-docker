@@ -2,7 +2,7 @@
 
 > This project was built with AI assistance — see [AI_DISCLAIMER.md](AI_DISCLAIMER.md) for details.
 
-Dockerised [Znuny 7.2](https://www.znuny.org) based on **Debian 12 (Bookworm)**.
+Dockerised [Znuny 7.3](https://www.znuny.org) based on **Debian 13 (Trixie)**.
 
 Images are published to the GitHub Container Registry on every version tag push.
 
@@ -39,12 +39,14 @@ Default admin credentials: **root@localhost** / value of `ZNUNY_ROOT_PASSWORD` (
 znuny-docker/
 ├── .github/workflows/build-push.yml   # CI/CD — builds & pushes images on v* tags
 ├── znuny/
-│   ├── Dockerfile                     # Main Znuny image (Debian 12)
+│   ├── Dockerfile                     # Main Znuny image (Debian 13)
+│   ├── Dockerfile.base                # Base image: packages and Perl modules
 │   ├── entrypoint.sh                  # Container startup logic
 │   ├── functions.sh                   # Helper functions
 │   ├── util_functions.sh              # Logging utilities
 │   ├── znuny_backup.sh                # Automated backup script (called by cron)
 │   └── etc/supervisord/znuny.conf     # Supervisord program definitions
+├── tests/e2e/run.sh                   # End-to-end acceptance test (Podman)
 ├── docker-compose.yml                 # Main stack
 ├── .env.example                       # All supported variables with descriptions
 └── Planning.md                        # Architecture decisions and implementation plan
@@ -188,8 +190,38 @@ ZNUNY_SMTP_PASSWORD=secret
 docker compose build
 
 # Build with a specific Znuny version
-docker compose build --build-arg ZNUNY_VERSION=7.2.1
+docker compose build --build-arg ZNUNY_VERSION=7.3.7
 ```
+
+The Znuny image builds on `ghcr.io/ckbaker10/znuny-base` (see
+[znuny/README.base.md](znuny/README.base.md)). To test changes to
+`Dockerfile.base` before publishing it, build the base locally and pass it
+with `--from` (Podman/Buildah), as the end-to-end test does.
+
+---
+
+## End-to-End Acceptance Test
+
+`tests/e2e/run.sh` builds the base image and two Znuny versions locally with
+Podman and checks, in an isolated compose project (`znuny-e2e`, port 18080):
+
+1. fresh install of the older version: database schema and `Config.pm` are set
+   up automatically, the admin password from `ZNUNY_ROOT_PASSWORD` works, a
+   wrong one is rejected, required Perl modules (incl. SAML, JWT, Jq) are
+   present, the daemon runs, a ticket can be created
+2. upgrade of the same volumes to the newer version: patch level migration
+   runs, the ticket is still there, login and daemon still work
+
+```bash
+tests/e2e/run.sh                               # 7.3.1 -> ZNUNY_VERSION from .env.example
+E2E_FROM_VERSION=7.3.6 E2E_TO_VERSION=7.3.7 tests/e2e/run.sh
+E2E_KEEP=1 tests/e2e/run.sh                    # keep the stack for debugging
+```
+
+Requirements: `podman`, `podman-compose` and `curl`. Nothing is pushed, and
+all containers, networks and volume data of the test are removed afterwards
+(the locally built images stay). Further options are listed in the script
+header. Run it before tagging a release.
 
 ---
 
@@ -198,13 +230,13 @@ docker compose build --build-arg ZNUNY_VERSION=7.2.1
 Push a version tag to trigger the build-and-push workflow:
 
 ```bash
-git tag v7.2.1
-git push origin v7.2.1
+git tag v7.3.7
+git push origin v7.3.7
 ```
 
 This builds multi-arch images (`linux/amd64` + `linux/arm64`) and pushes:
 
-- `ghcr.io/<owner>/znuny:7.2.1`
+- `ghcr.io/<owner>/znuny:7.3.7`
 - `ghcr.io/<owner>/znuny:latest`
 
 The workflow requires **no additional secrets** — it uses the built-in `GITHUB_TOKEN`.
@@ -259,14 +291,14 @@ a2enmod rewrite ssl proxy proxy_http headers
 
 ---
 
-## Patch Level Updates (7.2.x → 7.2.y)
+## Patch Level Updates (7.3.x → 7.3.y)
 
 Updating to a new patch release only requires bumping the version and restarting.
 All data is preserved in volumes — the image is replaced, not the data.
 
 ```bash
 # 1. Update the version in .env
-ZNUNY_VERSION=7.2.3
+ZNUNY_VERSION=7.3.7
 
 # 2. Pull the new pre-built image
 docker compose pull
@@ -275,17 +307,19 @@ docker compose pull
 docker compose up -d
 ```
 
-On startup the container automatically:
-- Rebuilds the Znuny configuration (`Maint::Config::Rebuild`)
-- Clears the application cache (`Maint::Cache::Delete`)
-- Reinstalls any addons found in `./volumes/addons`
+When the version in `./volumes/config/current_version` differs from the image,
+the container automatically:
+- Syncs the Kernel files from the image (keeping `Config.pm` and `sp.key`)
+- Runs the patch level migration (`scripts/MigrateToZnuny7_3.pl`)
+- Upgrades installed addons (`Admin::Package::UpgradeAll`)
 
-For patch level releases these steps are sufficient. If a release explicitly requires
-a schema migration or package reinstall, run these commands after the container is up:
+and on every start it rebuilds the configuration (`Maint::Config::Rebuild`),
+clears the cache (`Maint::Cache::Delete`) and installs addons found in
+`./volumes/addons`. To repeat the migration or reinstall packages manually:
 
 ```bash
 docker exec -it znuny-docker-znuny-1 \
-  su -c "scripts/MigrateToZnuny7_2.pl --verbose" -s /bin/bash znuny
+  su -c "scripts/MigrateToZnuny7_3.pl --verbose" -s /bin/bash znuny
 
 docker exec -it znuny-docker-znuny-1 \
   su -c "bin/znuny.Console.pl Admin::Package::ReinstallAll" -s /bin/bash znuny

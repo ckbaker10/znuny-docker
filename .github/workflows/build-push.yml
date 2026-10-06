@@ -22,7 +22,7 @@ jobs:
       # 1. Checkout
       # ----------------------------------------------------------------
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # ----------------------------------------------------------------
       # 2. Derive the Znuny version from the git tag (v7.2.1 → 7.2.1)
@@ -39,13 +39,13 @@ jobs:
       # 3. Set up Docker Buildx
       # ----------------------------------------------------------------
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # ----------------------------------------------------------------
       # 5. Log in to GitHub Container Registry
       # ----------------------------------------------------------------
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -56,7 +56,7 @@ jobs:
       # ----------------------------------------------------------------
       - name: Docker metadata — Znuny
         id: meta-znuny
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.ZNUNY_IMAGE }}
           # Tags are intentionally NOT set here — we build them explicitly
@@ -65,14 +65,14 @@ jobs:
             latest=false
           labels: |
             org.opencontainers.image.title=Znuny
-            org.opencontainers.image.description=Znuny ${{ steps.version.outputs.version }} on Debian 12
+            org.opencontainers.image.description=Znuny ${{ steps.version.outputs.version }} on Debian 13
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
 
       # ----------------------------------------------------------------
       # 7. Build & push — Znuny image
       # ----------------------------------------------------------------
       - name: Build and push Znuny image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./znuny
           platforms: linux/amd64

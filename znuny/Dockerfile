@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1
-# Znuny 7.2 Docker image
-# Base: Debian 12 (Bookworm) slim
+# Znuny 7.3 Docker image
+# Base: Debian 13 (Trixie) slim
 # Install method: source tarball from download.znuny.org
 
-FROM ghcr.io/ckbaker10/znuny-base:1.0
+FROM ghcr.io/ckbaker10/znuny-base:2.0
 
 ARG ZNUNY_VERSION
 LABEL maintainer="znuny-docker" \
       org.opencontainers.image.title="Znuny" \
-      org.opencontainers.image.description="Znuny ${ZNUNY_VERSION} on Debian 12" \
+      org.opencontainers.image.description="Znuny ${ZNUNY_VERSION} on Debian 13" \
       org.opencontainers.image.version="${ZNUNY_VERSION}" \
       org.opencontainers.image.source="https://github.com/znuny/znuny"
 

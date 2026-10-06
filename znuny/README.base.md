@@ -1,27 +1,34 @@
 # znuny-base
 
-Base image for Znuny, built on Debian 12 (Bookworm) slim. Contains all system packages and Perl modules required to run Znuny, including modules that must be compiled from source because they are missing or too old in the Debian apt repositories.
+Base image for Znuny, built on Debian 13 (Trixie) slim. Contains all system packages and Perl modules required to run Znuny, including modules that must be installed from CPAN because they are not packaged in Debian.
 
-The main [Dockerfile](Dockerfile) uses this as its base (`FROM ghcr.io/ckbaker10/znuny-base:1.0`), so the lengthy apt install and compile steps only run when dependencies actually change — not on every Znuny version build.
+The main [Dockerfile](Dockerfile) uses this as its base (`FROM ghcr.io/ckbaker10/znuny-base:2.0`), so the lengthy apt install and compile steps only run when dependencies actually change — not on every Znuny version build.
 
-## Perl modules compiled from source via cpanm
+| Tag | Debian | Notes |
+|---|---|---|
+| `2.0` | 13 (Trixie) | Crypto modules from apt, build tools removed after the CPAN step, no `DBD::ODBC` (dropped from Debian 13; only needed for MS-SQL) |
+| `1.0` | 12 (Bookworm) | Previous base |
 
-These cannot be installed from apt because they are either missing or ship too old a version in Debian 12:
+## Perl modules installed via cpanm
+
+These are not packaged in Debian 13:
 
 | Perl module | Reason |
 |---|---|
-| `CryptX` | Debian 12 ships too old a version (< 0.081) |
-| `Crypt::JWT` | Depends on CryptX — installed alongside it |
-| `Crypt::OpenSSL::RSA` | Version conflict with apt package |
-| `Crypt::OpenSSL::X509` | Debian 12 ships too old a version (< 2.0.1) |
-| `Net::SAML2` | Not packaged in Debian 12 — needed for SAML authentication |
-| `Jq` | Not packaged in Debian 12 — needed for generic interface condition checking |
+| `Net::SAML2` | Needed for SAML authentication; pulls `XML::Sig`, `XML::Enc` and further SAML dependencies |
+| `Jq` | Needed for generic interface condition checking |
+
+`CryptX`, `Crypt::JWT`, `Crypt::OpenSSL::RSA` and `Crypt::OpenSSL::X509` come from the Debian 13 packages, which are recent enough (the Debian 12 based `1.0` image had to compile them).
+
+The MariaDB 11.8 client in Debian 13 requires TLS by default; the base image sets `skip-ssl` for MariaDB clients because the bundled `mariadb` service has no TLS.
 
 ---
 
 ## Rebuilding and pushing
 
-Only rebuild this image when you change `Dockerfile.base` (i.e. when Perl dependencies change). Bump the tag version (`1.0`, `1.1`, etc.) and update the `FROM` line in [Dockerfile](Dockerfile) to match.
+Only rebuild this image when you change `Dockerfile.base` (i.e. when Perl dependencies change) or to pick up Debian security updates. Bump the tag version (`2.0`, `2.1`, etc.) and update the `FROM` line in [Dockerfile](Dockerfile) to match.
+
+Before pushing, run the end-to-end test (`tests/e2e/run.sh`); it builds this image locally and runs Znuny on top of it.
 
 ### 1. Create a GitHub personal access token
 
@@ -40,14 +47,14 @@ echo "YOUR_GITHUB_TOKEN" | docker login ghcr.io -u ckbaker10 --password-stdin
 ```bash
 docker build \
   -f znuny/Dockerfile.base \
-  -t ghcr.io/ckbaker10/znuny-base:1.0 \
+  -t ghcr.io/ckbaker10/znuny-base:2.0 \
   znuny/
 ```
 
 ### 4. Push the image
 
 ```bash
-docker push ghcr.io/ckbaker10/znuny-base:1.0
+docker push ghcr.io/ckbaker10/znuny-base:2.0
 ```
 
 ### 5. Update the main Dockerfile
@@ -55,7 +62,7 @@ docker push ghcr.io/ckbaker10/znuny-base:1.0
 If you bumped the tag, update the `FROM` line in [Dockerfile](Dockerfile):
 
 ```dockerfile
-FROM ghcr.io/ckbaker10/znuny-base:1.1
+FROM ghcr.io/ckbaker10/znuny-base:2.1
 ```
 
 ---

@@ -30,6 +30,19 @@ Only rebuild this image when you change `Dockerfile.base` (i.e. when Perl depend
 
 Before pushing, run the end-to-end test (`tests/e2e/run.sh`); it builds this image locally and runs Znuny on top of it.
 
+### Via GitHub Actions (preferred)
+
+Push a `base-v<version>` tag; [build-base.yml](../.github/workflows/build-base.yml) builds `Dockerfile.base` and pushes `ghcr.io/<owner>/znuny-base:<version>` with the built-in `GITHUB_TOKEN`. The tag must match the `FROM` line in [Dockerfile](Dockerfile), and the base must be published before the Znuny version tag that uses it.
+
+```bash
+git tag base-v2.0
+git push origin base-v2.0
+```
+
+If the package was first pushed by hand, the workflow can only write to it after granting this repository access: package settings → **Manage Actions access** → add the repository with the **Write** role.
+
+### Manually
+
 ### 1. Create a GitHub personal access token
 
 GitHub → **Settings** → **Developer settings** → **Personal access tokens** → **Tokens (classic)** → **Generate new token (classic)**

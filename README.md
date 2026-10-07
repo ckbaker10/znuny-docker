@@ -227,14 +227,16 @@ header. Run it before tagging a release.
 
 ## Publishing Images via GitHub Actions
 
-Push a version tag to trigger the build-and-push workflow:
+If the base image changed, publish it first with a `base-v*` tag (see
+[README.base.md](znuny/README.base.md)). Then push a version tag to trigger the
+build-and-push workflow:
 
 ```bash
 git tag v7.3.7
 git push origin v7.3.7
 ```
 
-This builds multi-arch images (`linux/amd64` + `linux/arm64`) and pushes:
+This builds a `linux/amd64` image and pushes:
 
 - `ghcr.io/<owner>/znuny:7.3.7`
 - `ghcr.io/<owner>/znuny:latest`

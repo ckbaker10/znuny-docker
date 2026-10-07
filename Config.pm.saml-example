@@ -1,12 +1,12 @@
 # --
-# Znuny 7.3.1 — Example Config.pm with SAML 2.0 SSO
+# Znuny 7.3 — Example Config.pm with SAML 2.0 SSO (introduced in 7.3.1)
 #
 # Copy this file to volumes/config/Config.pm and adjust the values marked
 # with <CHANGE_ME> before starting the container.
 #
 # Before starting:
 #   1. Generate SP keypair (required if IdP has WantAuthnRequestsSigned=true):
-#        openssl genrsa -out volumes/config/sp.key 2048
+#        openssl genrsa -traditional -out volumes/config/sp.key 2048
 #        openssl req -new -key volumes/config/sp.key -x509 -days 3650 \
 #          -subj "/CN=znuny-sp" -out volumes/config/sp.crt
 #      Then upload sp.crt to your IdP.

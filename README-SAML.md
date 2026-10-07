@@ -1,6 +1,10 @@
-# Znuny 7.3.1 — SAML 2.0 Authentication Setup Guide
+# Znuny 7.3 — SAML 2.0 Authentication Setup Guide
 
 This guide documents the SAML 2.0 authentication feature introduced in Znuny **7.3.1** (relative to 7.2.3).
+
+The current image is **7.3.7** on Debian 13 with **znuny-base:2.0**. The version
+comparison below describes the historical introduction of SAML. The E2E test
+checks that the Perl modules load; an actual IdP login needs separate validation.
 
 ---
 
@@ -26,10 +30,12 @@ The `Kernel/Config/Defaults.pm` was extended with commented-out example configur
 
 ### Perl Dependency
 
-SAML support requires the `Net::SAML2` CPAN module, which is **not** available as a standard Debian/Ubuntu package:
+SAML support requires `Net::SAML2`. The current base image already installs it
+via CPAN and supplies the XML/crypto dependencies from Debian packages; no
+installation inside the running application container is needed. Check it with:
 
 ```bash
-cpanm --notest Net::SAML2
+docker compose exec znuny perl -MNet::SAML2 -e 'print "OK\n"'
 ```
 
 Also ensure the following are available (typically already present):
@@ -49,7 +55,7 @@ Znuny acts as a SAML Service Provider (SP). If your IdP requires signed `AuthnRe
 
 ```bash
 # Run on the Docker host — output goes into the persistent config volume
-openssl genrsa -out volumes/config/sp.key 2048
+openssl genrsa -traditional -out volumes/config/sp.key 2048
 openssl req -new -key volumes/config/sp.key \
   -x509 -days 3650 \
   -subj "/CN=znuny-sp" \
@@ -66,11 +72,13 @@ The key will be available inside the container at `/opt/znuny/Kernel/sp.key`.
 > FATAL: rsa_sign_hash_ex failed: A private PK key is required.
 > ```
 >
-> The `openssl genrsa` command above always produces PKCS#1. If you have an existing PKCS#8 key,
+> With OpenSSL 3, `-traditional` explicitly selects PKCS#1; see the
+> [OpenSSL documentation](https://docs.openssl.org/3.0/man1/openssl-genrsa/).
+> If you have an existing PKCS#8 key,
 > convert it:
 >
 > ```bash
-> openssl rsa -in sp.key -out sp.key.pkcs1 && mv sp.key.pkcs1 sp.key
+> openssl rsa -traditional -in sp.key -out sp.key.pkcs1 && mv sp.key.pkcs1 sp.key
 > ```
 
 ### Register the SP certificate with the IdP
@@ -401,8 +409,8 @@ every login attempt and a 500 response to the user.
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
-| 500 error on every page load | `Net::SAML2` XS module fails to load | Rebuild image with `--no-cache`; verify with `docker compose exec znuny perl -MNet::SAML2 -e 'print "OK\n"'` |
-| `rsa_sign_hash_ex failed: A private PK key is required` | `sp.key` is in PKCS#8 format or missing | Regenerate with `openssl genrsa`; check with `head -1 sp.key` |
+| 500 error on every page load | `Net::SAML2` XS module fails to load | Rebuild the base image and then the application; rebuilding only the application reuses base dependencies. Verify with `docker compose exec znuny perl -MNet::SAML2 -e 'print "OK\n"'` |
+| `rsa_sign_hash_ex failed: A private PK key is required` | `sp.key` is in PKCS#8 format or missing | Generate or convert with `-traditional` as shown above; check only the PEM header |
 | SAML button missing on login page | Config key suffix mismatch or config not loaded | Check all related keys use the same numeric suffix; restart container |
 | Issuer or ACS URL sent as `http://` instead of `https://` | `Issuer` / `RequestAssertionConsumerURL` use wrong scheme | Change both to `https://` in Config.pm |
 | "Need config AuthModule::SAML::..." error | Required config key missing or misspelled | Check key names — no extra `::` separators |

@@ -4,6 +4,9 @@
 
 Dockerised [Znuny 7.3](https://www.znuny.org) based on **Debian 13 (Trixie)**.
 
+The configured default is **Znuny 7.3.7**, using **znuny-base:2.0** and the
+official **MariaDB 10.11** image. Both image workflows publish **linux/amd64**.
+
 Images are published to the GitHub Container Registry on every version tag push.
 
 ```
@@ -186,7 +189,7 @@ ZNUNY_SMTP_PASSWORD=secret
 ## Building the Images Locally
 
 ```bash
-# Build both images
+# Build the Znuny image (MariaDB uses an official pre-built image)
 docker compose build
 
 # Build with a specific Znuny version
@@ -298,6 +301,10 @@ a2enmod rewrite ssl proxy proxy_http headers
 Updating to a new patch release only requires bumping the version and restarting.
 All data is preserved in volumes — the image is replaced, not the data.
 
+Back up the database, configuration and attachments before updating, and test
+the upgrade on an isolated copy. This procedure covers updates within 7.3;
+cross-series migrations require the separate guidance below.
+
 ```bash
 # 1. Update the version in .env
 ZNUNY_VERSION=7.3.7
@@ -329,66 +336,26 @@ docker exec -it znuny-docker-znuny-1 \
 
 ---
 
-## Migrating an Existing Znuny 7.1 System to Docker
+## Migrating an Existing Znuny System
 
-Use this process to move a bare-metal or VM-based Znuny 7.1 installation into this
-Docker setup. The migration upgrades Znuny to 7.2 at the same time.
+The current image runs Znuny 7.3.7. The [official 7.3 update guide](https://doc.znuny.org/znuny/updating/update-7.3.html)
+supports source versions 7.2.x and 7.3.x. A 7.1 installation must first be
+upgraded to 7.2 using the [7.2 update guide](https://doc.znuny.org/znuny/updating/update-7.2.html),
+then to 7.3. Do not restore a 7.1 backup directly into this image and run only
+the 7.2 migration script.
 
-### 1. Back up the existing system
+Before moving an installation, back up the database, configuration and
+attachments, verify add-on compatibility with 7.3 and rehearse the complete
+migration on an isolated copy. Follow the upstream service-stop, migration,
+package upgrade and validation steps for each series. The container restore
+mode restores files and data and starts services; it does not run the normal
+version-change migration.
 
-On the source system, create a full backup using the bundled script:
-
-```bash
-su -c "scripts/backup.pl -d /path/to/backup --backup-type fullbackup" - znuny
-```
-
-Copy the resulting archive to `./volumes/backups/` on the Docker host.
-
-### 2. Restore into the container
-
-Set the restore variables in `.env`:
-
-```env
-ZNUNY_INSTALL=restore
-ZNUNY_BACKUP_DATE=2024-01-15_04-00   # filename without extension
-ZNUNY_DROP_DATABASE=yes
-```
-
-Start the stack — the entrypoint will restore the database and files automatically:
-
-```bash
-docker compose up -d
-```
-
-### 3. Run the 7.2 migration
-
-Once the container is running, execute the migration script:
-
-```bash
-docker exec -it znuny-docker-znuny-1 \
-  su -c "scripts/MigrateToZnuny7_2.pl --verbose" -s /bin/bash znuny
-```
-
-### 4. Reinstall addons
-
-```bash
-docker exec -it znuny-docker-znuny-1 \
-  su -c "bin/znuny.Console.pl Admin::Package::ReinstallAll" -s /bin/bash znuny
-```
-
-### 5. Switch to normal mode and restart
-
-Edit `.env`:
-
-```env
-ZNUNY_INSTALL=no
-```
-
-```bash
-docker compose up -d
-```
-
-The system is now running Znuny 7.2 in Docker with all data from the original installation.
+The included E2E test covers fresh installation of 7.3.1 and a patch update to
+7.3.7. It does not validate 7.1 → 7.2 → 7.3 or a cross-series backup restore.
+Move an already upgraded 7.3 installation using a compatible backup and the
+[restore procedure](#restoring-a-backup), verify login, tickets, attachments and
+add-ons, then switch `ZNUNY_INSTALL` back to `no` before the next restart.
 
 ---
 

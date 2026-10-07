@@ -30,6 +30,11 @@ Only rebuild this image when you change `Dockerfile.base` (i.e. when Perl depend
 
 Before pushing, run the end-to-end test (`tests/e2e/run.sh`); it builds this image locally and runs Znuny on top of it.
 
+Both publishing workflows target `linux/amd64`. The base workflow publishes only
+the versioned base tag, while the application workflow also publishes `latest`.
+When changing the base, update the version examples here, the main Dockerfile
+and the architecture description in [Planning.md](../Planning.md) together.
+
 ### Via GitHub Actions (preferred)
 
 Push a `base-v<version>` tag; [build-base.yml](../.github/workflows/build-base.yml) builds `Dockerfile.base` and pushes `ghcr.io/<owner>/znuny-base:<version>` with the built-in `GITHUB_TOKEN`. The tag must match the `FROM` line in [Dockerfile](Dockerfile), and the base must be published before the Znuny version tag that uses it.
@@ -82,6 +87,9 @@ FROM ghcr.io/ckbaker10/znuny-base:2.1
 
 ## Making the package public
 
-By default ghcr.io packages are private. To allow the GitHub Actions worker to pull it without extra credentials:
+For public anonymous pulls of the base image, set the package visibility to public:
 
 GitHub → **Your profile** → **Packages** → select `znuny-base` → **Package settings** → **Change visibility** → **Public**
+
+Visibility does not grant a workflow write access. For an existing package,
+also configure **Manage Actions access** as described above.

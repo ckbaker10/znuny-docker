@@ -234,6 +234,20 @@ header. Run it before tagging a release.
 
 ## Publishing Images via GitHub Actions
 
+Every release requires the [migration acceptance suite](tests/migration/README.md)
+to pass against the proposed image. From this checkout, before creating a tag:
+
+```bash
+bash tests/migration/release.sh 7.3.7
+```
+
+Use the proposed release version. This builds local candidate images and checks
+7.1.3 → 7.2.3 → target with filesystem attachments, 7.2.3 → target with database
+attachments, and the existing 7.3.1 → target patch-update E2E. A failed or missing
+case blocks the release. Both publishing workflows enforce this through a
+required migration job. New minor series need extended intermediate stages and
+tests before publishing is enabled.
+
 If the base image changed, publish it first with a `base-v*` tag (see
 [README.base.md](znuny/README.base.md)). Then push a version tag to trigger the
 build-and-push workflow:
@@ -478,8 +492,11 @@ docker compose up -d mariadb
 
 The following one-off container uses the selected image and the same persistent
 volumes as the future service. It bypasses `/entrypoint.sh`. It copies the
-target Kernel/skins, extracts only the source `Config.pm` and standard article
-directory, rewrites the database connection for Compose, then imports SQL.
+target Kernel/skins, extracts the source `Config.pm`, generated `ZZZAAuto.pm`
+and standard article directory, rewrites the database connection for Compose,
+then imports SQL. The generated source settings are needed by the 7.2 migration;
+do not rebuild the 7.2 configuration before its database migration. The migration
+itself updates/deploys the settings in the required order.
 It never extracts the complete old application onto the target.
 
 ```bash
@@ -490,7 +507,8 @@ docker compose run --rm --no-deps --entrypoint /bin/bash znuny -c '
   check_host_mount_dir
   check_custom_skins_dir
   backup=/var/znuny/backups/source
-  tar -xzf "$backup/Config.tar.gz" -C /opt/znuny Kernel/Config.pm
+  tar -xzf "$backup/Config.tar.gz" -C /opt/znuny \
+    Kernel/Config.pm Kernel/Config/Files/ZZZAAuto.pm
   tar -xzf "$backup/Application.tar.gz" -C /opt/znuny ./var/article
   set_permissions
 '
@@ -540,16 +558,18 @@ docker compose run --rm --no-deps --entrypoint /bin/bash znuny -c '
   wait_for_db
   check_custom_skins_dir
   set_permissions
-  su -s /bin/bash -c "cd /opt/znuny && scripts/MigrateToZnuny7_2.pl --verbose" znuny
+  su -s /bin/bash -c "cd /opt/znuny && scripts/MigrateToZnuny7_2.pl --verbose --non-interactive" znuny
   su -s /bin/bash -c "cd /opt/znuny && bin/znuny.Console.pl Admin::Package::UpgradeAll" znuny
   su -s /bin/bash -c "cd /opt/znuny && bin/znuny.Console.pl Admin::Package::ReinstallAll" znuny
-  su -s /bin/bash -c "cd /opt/znuny && scripts/MigrateToZnuny7_2.pl --verbose" znuny
+  su -s /bin/bash -c "cd /opt/znuny && scripts/MigrateToZnuny7_2.pl --verbose --non-interactive" znuny
   printf "%s\n" "$ZNUNY_VERSION" > /opt/znuny/Kernel/current_version
 '
 ```
 
 All migration runs must finish with **Migration completed!** and exit
 successfully. If a migration or package command fails, keep the app stopped.
+`--non-interactive` skips the migration script's backup prompt; use it here only
+after the source backup and archive checks above succeeded.
 For unavailable add-ons, put the compatible `.opm` files in `volumes/addons`,
 install them with the following command using the **actual package filename**,
 and rerun the failed stage. Here `CompatiblePackage.opm` is that filename:
@@ -570,10 +590,10 @@ docker compose run --rm --no-deps --entrypoint /bin/bash znuny -c '
   sync_kernel_new_files
   check_custom_skins_dir
   set_permissions
-  su -s /bin/bash -c "cd /opt/znuny && scripts/MigrateToZnuny7_3.pl --verbose" znuny
+  su -s /bin/bash -c "cd /opt/znuny && scripts/MigrateToZnuny7_3.pl --verbose --non-interactive" znuny
   su -s /bin/bash -c "cd /opt/znuny && bin/znuny.Console.pl Admin::Package::UpgradeAll" znuny
   su -s /bin/bash -c "cd /opt/znuny && bin/znuny.Console.pl Admin::Package::ReinstallAll" znuny
-  su -s /bin/bash -c "cd /opt/znuny && scripts/MigrateToZnuny7_3.pl --verbose" znuny
+  su -s /bin/bash -c "cd /opt/znuny && scripts/MigrateToZnuny7_3.pl --verbose --non-interactive" znuny
   su -s /bin/bash -c "cd /opt/znuny && bin/znuny.Console.pl Maint::Config::Rebuild" znuny
   su -s /bin/bash -c "cd /opt/znuny && bin/znuny.Console.pl Maint::Cache::Delete" znuny
   printf "%s\n" "$ZNUNY_VERSION" > /opt/znuny/Kernel/current_version
@@ -628,10 +648,14 @@ Route users and mail back to the source. Once the target has accepted tickets
 or mail, this rollback would lose those new records; stop intake and reconcile
 them before returning to the source.
 
-The repository E2E test covers 7.3.1 → 7.3.7. The offline cross-series procedure
-above is based on the project helpers and migration scripts; it has not been
-tested end to end with a 7.1/7.2 source backup. Rehearse it with a copy of your
-source before production cutover. Upstream references explain the series
+The mandatory release suite tests this offline procedure with synthetic fullbackups:
+7.1.3 → 7.2.3 → 7.3.7 with filesystem attachments and 7.2.3 → 7.3.7 with database
+attachments. It verifies preserved ticket/article IDs, article body, binary
+attachment bytes, admin login, database, daemon and target versions. The existing
+E2E additionally covers 7.3.1 → 7.3.7. See [suite instructions](tests/migration/README.md)
+and [recorded results](tests/migration/RESULTS.md). These fixtures contain no
+add-ons or custom authentication; rehearse with your own copy for those
+installation-specific features before production cutover. Upstream references explain the series
 requirements: [7.2 update](https://doc.znuny.org/znuny-7_2/updating/update-7.2.html)
 and [7.3 update](https://doc.znuny.org/znuny/updating/update-7.3.html).
 

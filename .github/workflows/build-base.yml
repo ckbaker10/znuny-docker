@@ -10,8 +10,16 @@ env:
   BASE_IMAGE: ${{ github.repository_owner }}/znuny-base
 
 jobs:
+  migration-acceptance:
+    uses: ./.github/workflows/migration-checks.yml
+    with:
+      candidate-base: true
+    permissions:
+      contents: read
+
   build-and-push:
     name: Build & Push base
+    needs: migration-acceptance
     runs-on: ubuntu-latest
     permissions:
       contents: read

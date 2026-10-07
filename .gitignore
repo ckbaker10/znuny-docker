@@ -9,6 +9,9 @@ volumes/
 # Private migration snapshots and local diagnostics
 work/
 
+# Python test bytecode
+__pycache__/
+
 # Logs
 *.log
 

@@ -74,8 +74,12 @@ Buildx and GitHub Actions cache. Neither builds a MariaDB image.
 Before an image release, run `tests/e2e/run.sh` with rootless Podman; it tests
 schema initialization, correct and incorrect admin logins, required Perl modules,
 daemon startup, ticket creation and ticket persistence after the patch upgrade.
-It does not validate 7.1/7.2 migrations or a complete IdP login. Test those
-separately when changing their behavior.
+The mandatory [release acceptance suite](tests/migration/README.md) additionally
+tests synthetic fullbackup migrations from 7.1.3 (filesystem attachments) and
+7.2.3 (database attachments), including required intermediate stages and
+ticket/article/attachment integrity. Both image publishing workflows require
+this suite and the patch E2E to pass before publishing. Complete IdP login,
+custom add-ons and custom migration layouts require separate tests.
 
 Maintenance must keep this document, README, SAML guide, base README and examples
 consistent with Dockerfiles, Compose, scripts and workflows. Retain old versions

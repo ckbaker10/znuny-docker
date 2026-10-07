@@ -28,7 +28,17 @@ The MariaDB 11.8 client in Debian 13 requires TLS by default; the base image set
 
 Only rebuild this image when you change `Dockerfile.base` (i.e. when Perl dependencies change) or to pick up Debian security updates. Bump the tag version (`2.0`, `2.1`, etc.) and update the `FROM` line in [Dockerfile](Dockerfile) to match.
 
-Before pushing, run the end-to-end test (`tests/e2e/run.sh`); it builds this image locally and runs Znuny on top of it.
+Before pushing, build the candidate base and run the complete release acceptance
+suite from the repository root:
+
+```bash
+podman build -f znuny/Dockerfile.base -t localhost/znuny-release-base:test znuny
+RELEASE_BASE_IMAGE=localhost/znuny-release-base:test bash tests/migration/release.sh
+```
+
+This runs backup migrations from 7.1 and 7.2 and the existing patch-update E2E;
+see [the suite instructions](../tests/migration/README.md). The base publish
+workflow builds and tests its candidate base before permitting publication.
 
 Both publishing workflows target `linux/amd64`. The base workflow publishes only
 the versioned base tag, while the application workflow also publishes `latest`.

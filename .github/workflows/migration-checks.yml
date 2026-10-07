@@ -1,0 +1,50 @@
+name: Release migration acceptance
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Znuny version tag (v7.3.x) or empty for .env.example
+        type: string
+        default: ''
+      candidate-base:
+        description: Build and test Dockerfile.base before publishing it
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  migration-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install test tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman podman-compose python3 curl
+      - name: Build candidate base
+        if: inputs.candidate-base
+        run: |
+          podman build -f znuny/Dockerfile.base -t localhost/znuny-release-base:test znuny
+      - name: Run mandatory acceptance suite
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+          CANDIDATE_BASE: ${{ inputs.candidate-base }}
+        run: |
+          version="${VERSION_INPUT#v}"
+          if [ "$CANDIDATE_BASE" = true ]; then
+            export RELEASE_BASE_IMAGE=localhost/znuny-release-base:test
+          fi
+          bash tests/migration/release.sh "$version"
+      # Backups, cookies, environment files and raw logs contain sensitive data;
+      # upload only the synthetic fixture result summaries.
+      - name: Upload synthetic migration results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-results
+          path: work/migration-*/result.json
+          if-no-files-found: ignore

@@ -10,8 +10,16 @@ env:
   ZNUNY_IMAGE: ${{ github.repository_owner }}/znuny
 
 jobs:
+  migration-acceptance:
+    uses: ./.github/workflows/migration-checks.yml
+    with:
+      version: ${{ github.ref_name }}
+    permissions:
+      contents: read
+
   build-and-push:
     name: Build & Push
+    needs: migration-acceptance
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -91,8 +99,10 @@ jobs:
       # ----------------------------------------------------------------
       - name: Image digest summary
         run: |
-          echo "### Published image" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Image | Tags |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| \`${{ env.REGISTRY }}/${{ env.ZNUNY_IMAGE }}\` | \`${{ steps.version.outputs.version }}\`, \`latest\` |" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### Published image"
+            echo ""
+            echo "| Image | Tags |"
+            echo "|---|---|"
+            echo "| \`${{ env.REGISTRY }}/${{ env.ZNUNY_IMAGE }}\` | \`${{ steps.version.outputs.version }}\`, \`latest\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

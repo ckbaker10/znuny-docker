@@ -6,6 +6,9 @@ ignorefolder
 # Runtime volumes
 volumes/
 
+# Private migration snapshots and local diagnostics
+work/
+
 # Logs
 *.log
 

@@ -4,15 +4,16 @@ This project was created with the assistance of **Claude Sonnet 4.6** (model ID:
 
 ## Scope of AI Involvement
 
-The following was designed and implemented with AI assistance:
+The following was designed and implemented with AI assistance (initial
+scope; the current setup is described in [README.md](README.md)):
 
 - **Architecture & planning** — `Planning.md`, directory structure, choice of base image and install method
-- **Dockerfile** — Debian 12-slim base, Znuny source tarball install, Apache 2 / mod_perl configuration, Perl dependency selection, locale setup, volume staging
+- **Dockerfile** — Debian slim base (originally Debian 12; since `znuny-base:2.0` Debian 13 via `znuny/Dockerfile.base`), Znuny source tarball install, Apache 2 / mod_perl configuration, Perl dependency selection, locale setup, volume staging
 - **Container scripts** — `entrypoint.sh`, `functions.sh`, `util_functions.sh`, `znuny_backup.sh`
 - **Supervisord configuration** — `znuny/etc/supervisord/znuny.conf`
-- **MariaDB image** — `mariadb/Dockerfile`, `mariadb/etc/znuny.cnf`
+- **MariaDB image** — formerly `mariadb/Dockerfile` and `mariadb/etc/znuny.cnf`; removed, the stack now uses the official `mariadb:10.11` image
 - **Compose stack** — `docker-compose.yml`, environment variable design
-- **CI/CD** — `.github/workflows/build-push.yml` (multi-arch builds, ghcr.io publish)
+- **CI/CD** — `.github/workflows/build-push.yml` (originally multi-arch; now linux/amd64 only, ghcr.io publish)
 - **Documentation** — `README.md` including all operational runbooks
 
 ## Runtime Bugs Diagnosed and Fixed with AI Assistance
